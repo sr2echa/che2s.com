@@ -8,6 +8,7 @@ export const worstfish: BotDef = {
   approach: 'Stockfish, inverted',
   description:
     'Asks Stockfish to rank every legal move, then plays from the bottom of the list. A perfect engine aimed at the wrong target.',
+  vision: 'Best vs chosen',
   hud: 'Every move scored, from worst (red) to best',
   legend: [{ mark: 'bad', text: 'The move it played, on purpose' }, { mark: 'alt', text: 'The best move, which it avoided' }, { mark: 'heat', text: 'Destinations of good moves' }, { mark: 'heat-bad', text: 'Destinations of bad moves' }],
   settings: [

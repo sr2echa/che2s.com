@@ -49,6 +49,8 @@ export interface BotDef {
   /** One-line approach, e.g. "Neural net trained on human games". */
   approach: string;
   description: string;
+  /** Short name for the HUD, e.g. "Trap map". */
+  vision: string;
   /** What the HUD overlay visualises. */
   hud: string;
   /** Explains every mark the HUD can draw. */

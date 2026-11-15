@@ -1,8 +1,18 @@
 ---
 import Base from '../layouts/Base.astro';
 import { BOTS } from '../lib/bots';
+import type { Setting } from '../lib/types';
 import MiniMatch from '../components/MiniMatch';
 import { LegendBoard } from '../components/Overlay';
+
+const monogram = (name: string) => {
+  const words = name.split(' ');
+  if (words.length > 1) return words.map((w) => w[0]).join('');
+  const cap = name.slice(1).search(/[A-Z]/);
+  return cap >= 0 ? name[0] + name[cap + 1] : name.slice(0, 2);
+};
+const range = (s: Setting) =>
+  s.type === 'range' ? `${s.min}-${s.max}${s.unit ? (s.unit === '%' ? '%' : ` ${s.unit}`) : ''}` : s.type === 'toggle' ? 'on / off' : s.options.map((o) => o.label).join(' / ');
 ---
 <Base title="che2s · Bots" page="bots">
   <div class="aura" aria-hidden="true" style="--wp: 72"></div>
@@ -14,22 +24,33 @@ import { LegendBoard } from '../components/Overlay';
       </div>
       <MiniMatch client:visible />
     </section>
+
     {BOTS.map((b) => (
       <article class="bot" id={b.id}>
-        <div>
-          <h2>{b.name}</h2>
-          <div class="approach">{b.approach}</div>
-        </div>
-        <div>
-          <p>{b.description}</p>
-          <p class="faint" style="font-size:14px">Overlay: {b.hud}</p>
-          <LegendBoard client:visible items={b.legend} pieces="cburnett" />
-          <div class="knobs">{b.settings.map((s) => <span>{s.label}</span>)}</div>
-          <div class="ctas">
-            <a class="cta" href={`/?black=${b.id}`}>Play {b.name}<span class="cta-icon">&#8599;</span></a>
-            <a class="cta ghost" href={`/?white=${b.id}&black=${b.id === 'stockfish' ? 'maia' : 'stockfish'}`}>Watch vs {b.id === 'stockfish' ? 'Maia' : 'Stockfish'}<span class="cta-icon">&#8599;</span></a>
+        <div class="who">
+          <span class="mono-badge mono">{monogram(b.name)}</span>
+          <div>
+            <h2>{b.name}</h2>
+            <div class="approach mono">{b.approach}</div>
+            <p>{b.description}</p>
+            <div class="ctas">
+              <a class="cta small" href={`/?black=${b.id}`}>Play {b.name}<span class="cta-icon">&#8599;</span></a>
+              <a class="cta small ghost" href={`/?white=${b.id}&black=${b.id === 'stockfish' ? 'maia' : 'stockfish'}`}>Watch vs {b.id === 'stockfish' ? 'Maia' : 'Stockfish'}<span class="cta-icon">&#8599;</span></a>
+            </div>
           </div>
         </div>
+        <div class="vision">
+          <span class="label">Vision</span>
+          <h3>{b.vision}</h3>
+          <p class="faint">{b.hud}</p>
+          <LegendBoard client:visible items={b.legend} pieces="cburnett" />
+        </div>
+        <dl class="specs">
+          <span class="label">Settings</span>
+          {b.settings.map((s) => (
+            <div><dt>{s.label}</dt><dd class="mono">{range(s)}</dd></div>
+          ))}
+        </dl>
       </article>
     ))}
   </main>

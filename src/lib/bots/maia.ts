@@ -92,6 +92,7 @@ export const maia: BotDef = {
   approach: 'Neural net that predicts the human move',
   description:
     'Maia-3 from the University of Toronto, trained on millions of online games. It does not search for the best move; it predicts what a player of a given rating would actually play.',
+  vision: 'Move probabilities',
   hud: 'Probability that a human at this rating plays each move',
   legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'alt', text: 'Other moves humans choose here, with how often' }, { mark: 'heat', text: 'Brighter squares attract more human moves' }],
   settings: [

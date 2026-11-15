@@ -11,6 +11,7 @@ export const trapsky: BotDef = {
   approach: 'Hunts for moves whose obvious reply loses',
   description:
     'Compares what a hasty opponent would play against what actually works. Gives up a little objective value to set tempting traps.',
+  vision: 'Trap map',
   hud: 'Bait replies and the punishment waiting behind them',
   legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'alt', text: 'Candidates it weighed, with their trap score' }, { mark: 'bad', text: 'The bait: the reply it hopes you play' }, { mark: 'line', text: 'The punishment that follows the bait' }],
   settings: [

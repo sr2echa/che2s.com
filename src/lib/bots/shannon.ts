@@ -13,6 +13,7 @@ export const shannon: BotDef = {
   approach: 'Textbook alpha-beta over piece-square tables',
   description:
     'A 1950s idea run on a modern laptop: look at every move a few plies deep, prune what cannot matter, score leaves with material and square tables.',
+  vision: 'Search heatmap',
   hud: 'Root move scores as a heatmap, plus the principal line',
   legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'line', text: 'The continuation it expects, numbered by ply' }, { mark: 'heat', text: 'Brighter squares: stronger root moves land there' }],
   settings: [

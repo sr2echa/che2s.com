@@ -298,14 +298,26 @@ textarea.paste::placeholder { color: var(--ink-3); }
 .page h1 { font-size: clamp(52px, 9vw, 148px); letter-spacing: -0.07em; line-height: 0.92; font-weight: 250; margin: 0 0 28px; animation: reveal 1.1s var(--out) both; }
 .page h1 em { font-style: normal; color: var(--accent); }
 .page .lede { color: var(--ink-2); font-size: 18px; max-width: 46ch; margin: 0 0 96px; animation: reveal 1.1s var(--out) 0.12s both; }
-.bot { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 40px; padding: 44px 0 48px; border-top: 1px solid var(--line); animation: reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 40%; }
-.bot h2 { margin: 0; font-size: clamp(48px, 7vw, 112px); letter-spacing: -0.065em; font-weight: 250; line-height: 0.95; transition: color 0.5s var(--ease), transform 0.7s var(--out); }
-.bot:hover h2 { color: var(--accent); transform: translateX(10px); }
-.bot .approach { font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-top: 14px; }
-.bot p { margin: 0 0 18px; color: var(--ink-2); font-size: 16px; line-height: 1.55; max-width: 52ch; text-wrap: pretty; }
-.bot .knobs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 26px; }
-.bot .knobs span { font-size: 11.5px; font-family: var(--mono); padding: 3px 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); }
-.bot .ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.bot { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3fr); gap: clamp(24px, 4vw, 64px); padding: 40px 0 44px; border-top: 1px solid var(--line); animation: reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 40%; }
+.bot .who { display: grid; grid-template-columns: 44px 1fr; gap: 18px; align-items: start; }
+.mono-badge { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-2); margin-top: 4px; transition: color 0.4s var(--ease), box-shadow 0.4s var(--ease); }
+.bot:hover .mono-badge { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.bot h2 { margin: 0; font-size: clamp(32px, 3.4vw, 46px); letter-spacing: -0.05em; font-weight: 400; line-height: 1.05; transition: color 0.5s var(--ease); }
+.bot:hover h2 { color: var(--accent); }
+.bot .approach { font-size: 12px; color: #a7b9ff; margin: 6px 0 14px; }
+.bot p { margin: 0 0 18px; color: var(--ink-2); font-size: 14.5px; line-height: 1.55; max-width: 46ch; text-wrap: pretty; }
+.bot .ctas { display: flex; flex-wrap: wrap; gap: 8px; }
+.bot .vision { display: flex; flex-direction: column; gap: 6px; }
+.bot .vision h3 { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: -0.01em; }
+.bot .vision p { font-size: 13px; margin-bottom: 10px; }
+.bot .vision .legend-board svg { max-width: 200px; }
+.specs { margin: 0; display: flex; flex-direction: column; gap: 9px; }
+.specs .label { margin-bottom: 4px; }
+.specs div { display: flex; justify-content: space-between; gap: 16px; font-size: 13.5px; }
+.specs dt { color: var(--ink); }
+.specs dd { margin: 0; color: var(--ink-3); font-size: 12px; white-space: nowrap; }
+@media (max-width: 960px) { .bot { grid-template-columns: 1fr 1fr; } .bot .who { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .bot { grid-template-columns: 1fr; } }
 .page .aura { --wp: 70; }
 
 /* ---------- Responsive ---------- */

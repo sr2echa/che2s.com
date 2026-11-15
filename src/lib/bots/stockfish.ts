@@ -31,6 +31,7 @@ export const stockfish: BotDef = {
   approach: 'Alpha-beta search with an NNUE evaluator',
   description:
     'The strongest open-source engine, compiled to WebAssembly. Cap it with an Elo limit for a human-like opponent, or unleash it.',
+  vision: 'Candidate lines',
   hud: 'Candidate lines with evaluations',
   legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'alt', text: 'Other candidate lines, labelled with their evaluation' }],
   settings: [

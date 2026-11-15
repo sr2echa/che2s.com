@@ -22,6 +22,7 @@ export const monte: BotDef = {
   approach: 'Monte-Carlo tree search with random playouts',
   description:
     'No chess knowledge beyond material. Plays thousands of quick random games from here and backs the moves that keep winning them.',
+  vision: 'Visit map',
   hud: 'Where the simulations went: visit counts per move',
   legend: [{ mark: 'pick', text: 'The most-simulated move, which it plays' }, { mark: 'alt', text: 'Other popular branches, share of simulations' }, { mark: 'heat', text: 'Where the simulations went' }],
   settings: [
