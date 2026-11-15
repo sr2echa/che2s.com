@@ -12,6 +12,7 @@ export const trapsky: BotDef = {
   description:
     'Compares what a hasty opponent would play against what actually works. Gives up a little objective value to set tempting traps.',
   hud: 'Bait replies and the punishment waiting behind them',
+  legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'alt', text: 'Candidates it weighed, with their trap score' }, { mark: 'bad', text: 'The bait: the reply it hopes you play' }, { mark: 'line', text: 'The punishment that follows the bait' }],
   settings: [
     { key: 'appetite', label: 'Trap appetite', hint: 'How much it values a trap over a sound move', type: 'range', min: 0, max: 100, step: 5, default: 70, unit: '%' },
     { key: 'risk', label: 'Risk budget', hint: 'Centipawns it will concede to set a trap', type: 'range', min: 0, max: 300, step: 10, default: 80, unit: 'cp' },

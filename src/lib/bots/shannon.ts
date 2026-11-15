@@ -14,6 +14,7 @@ export const shannon: BotDef = {
   description:
     'A 1950s idea run on a modern laptop: look at every move a few plies deep, prune what cannot matter, score leaves with material and square tables.',
   hud: 'Root move scores as a heatmap, plus the principal line',
+  legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'line', text: 'The continuation it expects, numbered by ply' }, { mark: 'heat', text: 'Brighter squares: stronger root moves land there' }],
   settings: [
     { key: 'depth', label: 'Max depth', type: 'range', min: 1, max: 7, step: 1, default: 5, unit: 'ply' },
     { key: 'time', label: 'Time budget', type: 'range', min: 200, max: 6000, step: 100, default: 1500, unit: 'ms' },

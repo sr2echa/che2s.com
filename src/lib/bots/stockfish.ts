@@ -32,6 +32,7 @@ export const stockfish: BotDef = {
   description:
     'The strongest open-source engine, compiled to WebAssembly. Cap it with an Elo limit for a human-like opponent, or unleash it.',
   hud: 'Candidate lines with evaluations',
+  legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'alt', text: 'Other candidate lines, labelled with their evaluation' }],
   settings: [
     { key: 'full', label: 'Full strength', hint: 'Ignore the Elo cap', type: 'toggle', default: false },
     { key: 'elo', label: 'Elo', hint: 'Stockfish limits itself to play near this rating', off: 'full', type: 'range', min: 1320, max: 3190, step: 10, default: 1800 },

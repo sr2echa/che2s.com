@@ -9,6 +9,7 @@ export const worstfish: BotDef = {
   description:
     'Asks Stockfish to rank every legal move, then plays from the bottom of the list. A perfect engine aimed at the wrong target.',
   hud: 'Every move scored, from worst (red) to best',
+  legend: [{ mark: 'bad', text: 'The move it played, on purpose' }, { mark: 'alt', text: 'The best move, which it avoided' }, { mark: 'heat', text: 'Destinations of good moves' }, { mark: 'heat-bad', text: 'Destinations of bad moves' }],
   settings: [
     { key: 'malice', label: 'Malice', hint: '100 always plays the single worst move', type: 'range', min: 0, max: 100, step: 5, default: 100, unit: '%' },
     { key: 'depth', label: 'Search depth', type: 'range', min: 4, max: 14, step: 1, default: 8 },

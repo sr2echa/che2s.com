@@ -5,10 +5,10 @@ import { parseSan } from 'chessops/san';
 import type { Key } from 'chessground/types';
 import {
   CaretLeftIcon, CaretRightIcon, SkipBackIcon, SkipForwardIcon, ArrowUUpLeftIcon, ArrowsClockwiseIcon, PlayIcon, PauseIcon,
-  UserSwitchIcon, CopySimpleIcon, GearSixIcon, EyeIcon, EyeSlashIcon, SlidersHorizontalIcon, PlusIcon, CheckIcon, ArrowUpRightIcon,
+  UserSwitchIcon, CopySimpleIcon, GearSixIcon, InfoIcon, EyeIcon, EyeSlashIcon, SlidersHorizontalIcon, PlusIcon, CheckIcon, ArrowUpRightIcon,
 } from '@phosphor-icons/react';
 import Board from './Board';
-import { Heat, Marks } from './Overlay';
+import { Heat, Marks, Legend, COMMON_LEGEND } from './Overlay';
 import SeatSheet, { HUMAN, settingsOf, type Seat } from './SeatSheet';
 import ReviewPanel, { Insight } from './ReviewPanel';
 import { useLiveRatings } from '../lib/useLiveRatings';
@@ -64,6 +64,7 @@ export default function Arena() {
   const [reviewing, setReviewing] = useState<number | null>(null);
   const [reviewDepth, setReviewDepth] = useState(14);
   const [copied, setCopied] = useState(false);
+  const [legendFor, setLegendFor] = useState<Side | null>(null);
   const pieceSet = prefs.pieces;
 
   const game = useMemo(() => {
@@ -185,8 +186,8 @@ export default function Arena() {
 
   const rev = ply > 0 ? ratings[ply - 1] : undefined;
   const badge = rev ? { sq: rev.uci.slice(2, 4), glyph: CLS[rev.cls].glyph, color: CLS[rev.cls].color } : undefined;
-  const marks: Hud | null = rev && !['best', 'brilliant', 'great', 'forced'].includes(rev.cls)
-    ? { ...(hud ?? {}), arrows: [...(hud?.arrows ?? []), { from: rev.best.slice(0, 2), to: rev.best.slice(2, 4), tone: 'pick', label: 'best' }] }
+  const marks: Hud | null = rev && !['best', 'brilliant', 'great', 'forced', 'excellent'].includes(rev.cls)
+    ? { ...(hud ?? {}), arrows: [...(hud?.arrows ?? []), { from: rev.best.slice(0, 2), to: rev.best.slice(2, 4), tone: 'better', label: 'better' }] }
     : hud;
   const hintMove = hint && judge?.fen === shownFen && judge.pv[0] && !shown.outcome ? judge.pv[0] : undefined;
 
@@ -285,6 +286,14 @@ export default function Arena() {
     return () => window.removeEventListener('keydown', k);
   });
 
+  // Legend popover closes on any click outside it.
+  useEffect(() => {
+    if (!legendFor) return;
+    const close = (e: MouseEvent) => !(e.target as HTMLElement).closest('.legend-pop') && setLegendFor(null);
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [legendFor]);
+
   const movesRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (view < 0 && movesRef.current) movesRef.current.scrollTop = movesRef.current.scrollHeight;
@@ -328,6 +337,19 @@ export default function Arena() {
             {st.hud ? <EyeIcon size={18} /> : <EyeSlashIcon size={18} />}
           </button>
         )}
+        {bot && st.hud && (
+          <span className="legend-pop">
+            <button className="icon-btn" aria-label={`How to read ${bot.name}'s view`} aria-expanded={legendFor === s} data-tip={legendFor === s ? undefined : 'What the marks mean'} onClick={() => setLegendFor(legendFor === s ? null : s)} data-testid={`legend-${s}`}>
+              <InfoIcon size={18} />
+            </button>
+            {legendFor === s && (
+              <div className="popover" role="dialog" aria-label={`${bot.name} legend`}>
+                <b>{bot.name}</b>
+                <Legend items={[...bot.legend, ...COMMON_LEGEND]} testid={`legend-pop-${s}`} />
+              </div>
+            )}
+          </span>
+        )}
         <button className="icon-btn" aria-label={`Settings for ${s}`} data-tip={`${s === 'white' ? 'White' : 'Black'} player settings`} onClick={() => setSheet(s)}>
           <SlidersHorizontalIcon size={18} />
         </button>
@@ -361,6 +383,7 @@ export default function Arena() {
   const anyHud = (['white', 'black'] as const).some((x) => seats[x].hud && botById(seats[x].id));
   const deckTabs = (anyHud ? ['moves', 'review', 'vision'] : ['moves', 'review']) as ('moves' | 'review' | 'vision')[];
   const deck = deckTabs.includes(tab) ? tab : 'moves';
+  const visionBot = botById(seats[hudBy ?? (seats[shown.turn].hud ? shown.turn : other(shown.turn))].id);
 
   return (
     <div className="arena" data-pieces style={{ ['--wp' as string]: showJudge ? wp : 50, ...pieceVars(pieceSet), ...boardVars(prefs.board) }}>
@@ -524,6 +547,14 @@ export default function Arena() {
                   </>
                 ) : (
                   <div className="empty">Its view appears after it thinks.</div>
+                )}
+                {visionBot && (
+                  <>
+                    <span className="label" style={{ marginTop: 6 }}>How to read it</span>
+                    <Legend items={visionBot.legend} testid="legend" />
+                    <span className="label">Also on the board</span>
+                    <Legend items={COMMON_LEGEND} />
+                  </>
                 )}
               </div>
             )}

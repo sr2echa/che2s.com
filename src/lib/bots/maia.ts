@@ -93,6 +93,7 @@ export const maia: BotDef = {
   description:
     'Maia-3 from the University of Toronto, trained on millions of online games. It does not search for the best move; it predicts what a player of a given rating would actually play.',
   hud: 'Probability that a human at this rating plays each move',
+  legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'alt', text: 'Other moves humans choose here, with how often' }, { mark: 'heat', text: 'Brighter squares attract more human moves' }],
   settings: [
     { key: 'elo', label: 'Rating', hint: 'The player Maia imitates', type: 'range', min: 600, max: 2600, step: 50, default: 1500 },
     { key: 'oppo', label: 'Opponent rating', hint: 'Who Maia believes it is facing', type: 'range', min: 600, max: 2600, step: 50, default: 1500 },

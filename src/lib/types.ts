@@ -9,10 +9,16 @@ export type Setting =
 
 export type Settings = Record<string, number | string | boolean>;
 
+/** Arrow roles. Bots use pick/alt/bad/line; the app adds judge (engine best) and better (rating hint). */
+export type Tone = 'pick' | 'alt' | 'bad' | 'line' | 'judge' | 'better';
+/** One row of a HUD legend. */
+export type LegendMark = Tone | 'heat' | 'heat-bad' | 'node' | 'attack' | 'defend';
+export type Legend = { mark: LegendMark; text: string }[];
+
 /** What a bot "sees". Every field is optional; the overlay draws whatever is present. */
 export interface Hud {
   /** Arrows; tone: 'pick' = chosen move, 'alt' = candidate, 'bad' = bait/refuted, 'line' = continuation */
-  arrows?: { from: string; to: string; weight?: number; tone?: 'pick' | 'alt' | 'bad' | 'line'; label?: string }[];
+  arrows?: { from: string; to: string; weight?: number; tone?: Tone; label?: string }[];
   /** Square heat, v in [-1, 1] (positive = good for the bot). */
   heat?: Record<string, number>;
   /** Graph nodes (on squares) and edges. */
@@ -45,6 +51,8 @@ export interface BotDef {
   description: string;
   /** What the HUD overlay visualises. */
   hud: string;
+  /** Explains every mark the HUD can draw. */
+  legend: Legend;
   settings: Setting[];
   think(input: ThinkInput, ctx: ThinkCtx): Promise<{ move: string; hud?: Hud }>;
   /** Optional cheap, synchronous HUD for any position (drawn live instead of the last think HUD). */

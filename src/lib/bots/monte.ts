@@ -23,6 +23,7 @@ export const monte: BotDef = {
   description:
     'No chess knowledge beyond material. Plays thousands of quick random games from here and backs the moves that keep winning them.',
   hud: 'Where the simulations went: visit counts per move',
+  legend: [{ mark: 'pick', text: 'The most-simulated move, which it plays' }, { mark: 'alt', text: 'Other popular branches, share of simulations' }, { mark: 'heat', text: 'Where the simulations went' }],
   settings: [
     { key: 'sims', label: 'Simulations', type: 'range', min: 500, max: 30000, step: 500, default: 6000 },
     { key: 'c', label: 'Curiosity', hint: 'UCT exploration constant', type: 'range', min: 0.3, max: 2.5, step: 0.1, default: 1.2 },

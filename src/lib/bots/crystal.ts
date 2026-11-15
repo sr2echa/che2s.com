@@ -92,6 +92,7 @@ export const crystal: BotDef = {
   description:
     'Pieces are nodes, attacks and defences are edges. Runs PageRank to find the squares that matter, then plays for control of that network.',
   hud: 'The live attack/defence graph; node size is PageRank importance',
+  legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'node', text: 'Rings: how central each piece is (PageRank)' }, { mark: 'attack', text: 'A piece attacking an enemy piece' }, { mark: 'defend', text: 'A piece defending a friendly piece' }, { mark: 'heat', text: 'Squares the side to move controls' }, { mark: 'heat-bad', text: 'Squares the opponent controls' }],
   settings: [
     { key: 'depth', label: 'Look-ahead', type: 'range', min: 1, max: 4, step: 1, default: 3, unit: 'ply' },
     { key: 'space', label: 'Space', hint: 'Weight on controlling important squares', type: 'range', min: 0, max: 2, step: 0.1, default: 1 },

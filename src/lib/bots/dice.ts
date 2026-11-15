@@ -7,6 +7,7 @@ export const dice: BotDef = {
   approach: 'Uniformly random legal moves',
   description: 'The baseline every engine is measured against. Optionally greedy for captures and checks.',
   hud: 'Every legal destination, equally likely',
+  legend: [{ mark: 'pick', text: 'The roll' }, { mark: 'heat', text: 'Every square it could have moved to' }],
   settings: [{ key: 'greedy', label: 'Greedy', hint: 'Prefer captures and checks when available', type: 'toggle', default: false }],
   async think({ fen, settings: s }) {
     const pos = fromFen(fen);

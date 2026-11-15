@@ -223,3 +223,15 @@ test('judge rates moves live and explains them', async ({ page }) => {
   await expect(page.getByTestId('moves').locator('.glyph')).toHaveCount(6);
   await expect(page.getByTestId('review-badge')).toBeVisible();
 });
+
+test('HUD legends: Bot view, seat popover and the Bots page', async ({ page }) => {
+  await page.goto('/?white=human&black=crystal');
+  await page.getByTestId('hud-black').click();
+  await expect(page.getByTestId('legend')).toContainText('PageRank');
+  await page.getByTestId('legend-black').click();
+  await expect(page.getByTestId('legend-pop-black')).toContainText("Judge's best move");
+  await page.mouse.click(5, 5);
+  await expect(page.getByTestId('legend-pop-black')).toHaveCount(0);
+  await page.goto('/bots');
+  await expect(page.locator('article.bot .legend')).toHaveCount(8);
+});

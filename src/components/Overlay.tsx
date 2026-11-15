@@ -1,14 +1,16 @@
-import type { Hud } from '../lib/types';
+import type React from 'react';
+import type { Hud, Tone, Legend as LegendT, LegendMark } from '../lib/types';
 
 type Orient = 'white' | 'black';
-type Tone = 'pick' | 'alt' | 'bad' | 'line';
 const xy = (sq: string, o: Orient): [number, number] => {
   const f = sq.charCodeAt(0) - 97, r = +sq[1] - 1;
   return o === 'white' ? [f + 0.5, 7.5 - r] : [7.5 - f, r + 0.5];
 };
 
-const TONE: Record<Tone, string> = { pick: '#d4f35f', alt: '#f4f2ec', bad: '#ff6b57', line: '#7cc8ff' };
-const WIDTH: Record<Tone, number> = { pick: 0.15, alt: 0.085, bad: 0.12, line: 0.085 };
+// One colour per role, so arrows from different sources never read alike.
+export const TONE: Record<Tone, string> = { pick: '#d4f35f', alt: '#f4f2ec', bad: '#ff6b57', line: '#f5b94c', judge: '#7cc8ff', better: '#f4f2ec' };
+const DEFEND = '#5fd3c5';
+const WIDTH: Record<Tone, number> = { pick: 0.15, alt: 0.085, bad: 0.12, line: 0.085, judge: 0.11, better: 0.075 };
 
 /** Soft thermal blobs under the pieces. */
 export function Heat({ hud, orientation }: { hud?: Hud | null; orientation: Orient }) {
@@ -48,9 +50,9 @@ function arrowPath(x1: number, y1: number, x2: number, y2: number, inset: number
 
 export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; orientation: Orient; badge?: { sq: string; glyph: string; color: string }; hint?: string }) {
   const arrows = [...(hud?.arrows ?? [])];
-  if (hint) arrows.push({ from: hint.slice(0, 2), to: hint.slice(2, 4), tone: 'line', label: 'best' });
+  if (hint) arrows.push({ from: hint.slice(0, 2), to: hint.slice(2, 4), tone: 'judge', label: 'engine' });
   // Draw weaker arrows first so the chosen move sits on top.
-  const order: Tone[] = ['alt', 'line', 'bad', 'pick'];
+  const order: Tone[] = ['better', 'alt', 'line', 'bad', 'judge', 'pick'];
   arrows.sort((a, b) => order.indexOf(a.tone ?? 'alt') - order.indexOf(b.tone ?? 'alt'));
   return (
     <svg className="layer marks" viewBox="0 0 8 8" data-testid="hud-marks">
@@ -74,7 +76,7 @@ export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; ori
             const k = 0.3 / len;
             const sx = x1 + (x2 - x1) * k, sy = y1 + (y2 - y1) * k, ex = x2 - (x2 - x1) * k, ey = y2 - (y2 - y1) * k;
             const cx = (x1 + x2) / 2 + nx * bend * Math.min(len, 3), cy = (y1 + y2) / 2 + ny * bend * Math.min(len, 3);
-            const c = e.kind === 'attack' ? TONE.bad : TONE.line;
+            const c = e.kind === 'attack' ? TONE.bad : DEFEND;
             return (
               <g key={i}>
                 <path d={`M${sx} ${sy} Q${cx} ${cy} ${ex} ${ey}`} fill="none" stroke={c} strokeWidth={e.kind === 'attack' ? 0.045 : 0.03} strokeLinecap="round" opacity={0.8} pathLength={1} className="draw" style={{ animationDelay: `${(i % 24) * 12}ms` }} />
@@ -111,7 +113,11 @@ export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; ori
               <stop offset="1" stopColor={c} stopOpacity={1} />
             </linearGradient>
             <circle cx={x1} cy={y1} r={w * 0.9} fill={c} opacity={0.35} />
-            <path d={d} fill="none" stroke={`url(#${id})`} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" pathLength={1} className="draw" />
+            {tone === 'better' ? (
+              <path d={d} fill="none" stroke={c} strokeOpacity={0.85} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="0.02 0.17" />
+            ) : (
+              <path d={d} fill="none" stroke={`url(#${id})`} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" pathLength={1} className="draw" />
+            )}
             <path
               className="head"
               d={`M${hx} ${hy} L${tip[0] - ux * head * 0.25 + px * head * 0.55} ${tip[1] - uy * head * 0.25 + py * head * 0.55} L${tip[0] + ux * head * 0.05} ${tip[1] + uy * head * 0.05} L${tip[0] - ux * head * 0.25 - px * head * 0.55} ${tip[1] - uy * head * 0.25 - py * head * 0.55} Z`}
@@ -146,5 +152,42 @@ export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; ori
         );
       })()}
     </svg>
+  );
+}
+
+/** A tiny drawing of each legend mark, in the same colours as the board overlay. */
+function Swatch({ mark }: { mark: LegendMark }) {
+  const box = (children: React.ReactNode) => <svg viewBox="0 0 28 16" width="28" height="16" aria-hidden>{children}</svg>;
+  if (mark === 'heat' || mark === 'heat-bad') {
+    const c = mark === 'heat' ? TONE.pick : TONE.bad;
+    return box(<><defs><radialGradient id={`sw-${mark}`}><stop offset="0" stopColor={c} stopOpacity="0.95" /><stop offset="1" stopColor={c} stopOpacity="0" /></radialGradient></defs><circle cx="14" cy="8" r="8" fill={`url(#sw-${mark})`} /></>);
+  }
+  if (mark === 'node') return box(<circle cx="14" cy="8" r="5.5" fill="none" stroke={TONE.pick} strokeWidth="1.4" />);
+  if (mark === 'attack' || mark === 'defend') return box(<path d="M3 12 Q14 0 25 12" fill="none" stroke={mark === 'attack' ? TONE.bad : DEFEND} strokeWidth="1.6" strokeLinecap="round" />);
+  const c = TONE[mark];
+  return box(
+    <>
+      <line x1="3" y1="8" x2="19" y2="8" stroke={c} strokeWidth={mark === 'pick' ? 3 : 2} strokeLinecap="round" strokeDasharray={mark === 'better' ? '0.5 4' : undefined} />
+      <path d="M18 3.5 L26 8 L18 12.5 Z" fill={c} stroke={c} strokeWidth="1.2" strokeLinejoin="round" />
+    </>,
+  );
+}
+
+/** Marks every view can show besides the bot's own. */
+export const COMMON_LEGEND: LegendT = [
+  { mark: 'judge', text: "Judge's best move (Show best move)" },
+  { mark: 'better', text: 'A better move than the one just played' },
+];
+
+export function Legend({ items, testid }: { items: LegendT; testid?: string }) {
+  return (
+    <ul className="legend" data-testid={testid}>
+      {items.map((x) => (
+        <li key={x.mark + x.text}>
+          <Swatch mark={x.mark} />
+          <span>{x.text}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

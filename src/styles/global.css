@@ -432,3 +432,12 @@ textarea.paste::placeholder { color: var(--ink-3); }
 .preview.mini-board { grid-template-columns: repeat(4, 22px); grid-auto-rows: 22px; }
 .preview.mini-board .lt { background: var(--l); }
 .preview.mini-board .dk { background: var(--d); }
+
+/* Legends */
+.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.legend li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: center; font-size: 12.5px; color: var(--ink-2); line-height: 1.35; }
+.legend-pop { position: relative; }
+.popover { position: absolute; z-index: 30; right: -40px; top: calc(100% + 8px); width: 300px; padding: 16px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px; background: rgb(24 24 26 / 0.94); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: inset 0 0 0 1px var(--line-2), 0 24px 60px -12px rgb(0 0 0 / 0.6); animation: pop 0.35s var(--out); transform-origin: top right; }
+.popover b { font-weight: 550; font-size: 14px; }
+.seat.at-bottom .popover { top: auto; bottom: calc(100% + 8px); transform-origin: bottom right; }
+.bot .legend { margin: 0 0 24px; }

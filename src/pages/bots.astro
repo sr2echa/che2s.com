@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { BOTS } from '../lib/bots';
 import MiniMatch from '../components/MiniMatch';
+import { Legend } from '../components/Overlay';
 ---
 <Base title="che2s · Bots" page="bots">
   <div class="aura" aria-hidden="true" style="--wp: 72"></div>
@@ -22,6 +23,7 @@ import MiniMatch from '../components/MiniMatch';
         <div>
           <p>{b.description}</p>
           <p class="faint" style="font-size:14px">Overlay: {b.hud}</p>
+          <Legend items={b.legend} />
           <div class="knobs">{b.settings.map((s) => <span>{s.label}</span>)}</div>
           <div class="ctas">
             <a class="cta" href={`/?black=${b.id}`}>Play {b.name}<span class="cta-icon">&#8599;</span></a>
