@@ -203,6 +203,8 @@ export function rateMove(fen: string, uci: string, before: Analysis, afterA: Ana
   else if (loss < 20) cls = 'mistake';
   else cls = 'blunder';
   if ((prev === 'mistake' || prev === 'blunder') && loss >= 10) cls = 'miss';
+  // Delivering mate is simply the best move; "only move" and sacrifice labels would undersell it.
+  if (afterA.score.mate === 0 && cls !== 'forced') cls = 'best';
   const fen2 = after(fen, uci);
   return {
     ply,

@@ -299,7 +299,7 @@ export default function Arena() {
     const lead = s === 'white' ? caps.diff : -caps.diff;
     const inCheck = shown.check && shown.turn === s && !shown.outcome;
     return (
-      <div className={`seat ${area} ${toPlay ? 'on' : ''}`} style={{ gridArea: area }} data-testid={`seat-${s}`}>
+      <div className={`seat at-${area} ${toPlay ? 'on' : ''}`} style={{ gridArea: area }} data-testid={`seat-${s}`}>
         <button className="who" onClick={() => setSheet(s)} aria-label={`Configure ${s}`} data-tip={`Choose who plays ${s}`}>
           <span className={`chip ${s}`} />
           <span className="name">
@@ -447,9 +447,9 @@ export default function Arena() {
           </section>
         )}
 
-        {prefs.live && prefs.ratingCard && (
+        {(review || (prefs.live && prefs.ratingCard)) && (
           <div className="rating-slot" data-testid="rating-slot">
-            {rev && deck !== 'review' && <Insight key={`${ply}-${rev.uci}`} r={rev} />}
+            {rev && <Insight key={`${ply}-${rev.uci}`} r={rev} testid={review ? 'coach-insight' : 'insight'} />}
           </div>
         )}
 

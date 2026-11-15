@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { CaretLeftIcon, CaretRightIcon, PlayIcon, PauseIcon } from '@phosphor-icons/react';
+import { CaretLeftIcon, CaretRightIcon, PlayIcon, PauseIcon, StarIcon, ThumbsUpIcon, CheckIcon, ArrowRightIcon, XIcon } from '@phosphor-icons/react';
+import type { JSX } from 'react';
 import { CLS, type Cls, type MoveReview, type Review } from '../lib/review';
 import { winPct, fmtScore } from '../lib/chess';
 
@@ -16,17 +17,25 @@ interface Props {
   go(i: number): void;
 }
 
-/** A rated move: badge, label, eval swing and the reason. Used live and in the review coach. */
+/** Icon for a rating: chess.com-style marks, icons where a symbol reads better than punctuation. */
+export function ClsMark({ cls, size = 22 }: { cls: Cls; size?: number }) {
+  const icon = { best: <StarIcon size={size} weight="fill" />, excellent: <ThumbsUpIcon size={size} weight="fill" />, good: <CheckIcon size={size} weight="bold" />, forced: <ArrowRightIcon size={size} weight="bold" />, miss: <XIcon size={size} weight="bold" /> } as Partial<Record<Cls, JSX.Element>>;
+  return icon[cls] ?? <span className="mark-text">{CLS[cls].glyph}</span>;
+}
+
+/** A rated move: medal, label, eval swing and the reason. Used live and in the review coach. */
 export function Insight({ r, testid = 'insight' }: { r: MoveReview; testid?: string }) {
   const c = CLS[r.cls];
   return (
     <div className="insight" data-testid={testid} style={{ ['--c' as string]: c.color }}>
-      <div className="insight-head">
-        <span className="badge-dot">{c.glyph}</span>
-        <span className="insight-label">{c.label}</span>
-        <span className="mono faint">{fmtScore(r.before)} → {fmtScore(r.after)}</span>
+      <div className="medal" aria-hidden><ClsMark cls={r.cls} /></div>
+      <div className="insight-body">
+        <div className="insight-head">
+          <span className="insight-label">{c.label}</span>
+          <span className="mono swing">{fmtScore(r.before)} <i>→</i> {fmtScore(r.after)}</span>
+        </div>
+        <p title={r.explain}>{r.explain}</p>
       </div>
-      <p>{r.explain}</p>
     </div>
   );
 }
@@ -79,7 +88,8 @@ export default function ReviewPanel({ review, progress, depth, setDepth, run, ca
   return (
     <div className="review" data-testid="review">
       <div className="coach" data-testid="coach">
-        {cur ? <Insight r={cur} testid="coach-insight" /> : <p className="about">Start position. Step through to hear about every move.</p>}
+        {/* The rated move itself shows in the side column's rating slot, above. */}
+        <p className="about">{cur ? `Move ${Math.ceil(ply / 2)}: ${cur.san}. Step through, or let it play.` : 'Start position. Step through to hear about every move.'}</p>
         <div className="coach-nav">
           <button className="icon-btn" aria-label="Previous move" data-tip="Previous move (←)" onClick={() => go(ply - 1)} disabled={ply === 0}><CaretLeftIcon size={17} weight="bold" /></button>
           <span className="mono">{ply} / {n}</span>
@@ -117,7 +127,7 @@ function Row({ c, w, b }: { c: Cls; w: number; b: number }) {
   return (
     <>
       <span className="k">
-        <span className="glyph" style={{ color: CLS[c].color, width: 18 }}>{CLS[c].glyph}</span>
+        <span className="count-mark" style={{ ['--c' as string]: CLS[c].color }}><ClsMark cls={c} size={11} /></span>
         {CLS[c].label}
       </span>
       <span className="num" style={{ color: w ? CLS[c].color : 'var(--ink-3)' }}>{w}</span>

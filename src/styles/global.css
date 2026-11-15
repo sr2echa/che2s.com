@@ -365,15 +365,21 @@ textarea.paste::placeholder { color: var(--ink-3); }
 .sheet section .lead { font-size: 28px; }
 .sheet section .about { margin-bottom: 8px; }
 
-/* Move insight: live rating + reason, also the review coach */
-.insight { --c: var(--accent); display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 16px; background: color-mix(in srgb, var(--c) 9%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 28%, transparent); animation: reveal 0.6s var(--out) both; }
-.insight-head { display: flex; align-items: center; gap: 10px; }
-.insight-head .mono { margin-left: auto; font-size: 11.5px; }
-.badge-dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0a0a0b; font: 800 10.5px/1 var(--mono); }
-.insight-label { font-weight: 550; letter-spacing: -0.01em; color: var(--c); }
-.insight p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); text-wrap: pretty; }
+/* Move insight: medal + label + swing + reason. No container; the medal carries the colour. */
+.insight { --c: var(--accent); display: grid; grid-template-columns: 52px 1fr; gap: 16px; align-items: start; animation: reveal 0.6s var(--out) both; }
+.medal { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: #0a0a0b; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, white), var(--c) 60%); box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 16%, transparent), 0 10px 30px -6px color-mix(in srgb, var(--c) 55%, transparent); animation: medal 0.7s var(--out) both; }
+.medal .mark-text { font: 800 20px/1 var(--mono); letter-spacing: -0.06em; }
+@keyframes medal { from { transform: scale(0.4) rotate(-20deg); opacity: 0; } }
+.insight-body { min-width: 0; }
+.insight-head { display: flex; align-items: baseline; gap: 10px; }
+.insight-label { font-size: 19px; font-weight: 550; letter-spacing: -0.02em; color: var(--c); }
+.insight .swing { margin-left: auto; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.insight .swing i { font-style: normal; color: var(--ink-3); margin: 0 2px; }
+.insight p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty; }
+.count-mark { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--c); color: #0a0a0b; }
+.count-mark .mark-text { font: 800 8.5px/1 var(--mono); letter-spacing: -0.04em; }
 .coach { display: flex; flex-direction: column; gap: 12px; }
-.coach .about { min-height: 64px; }
+.coach .about { margin: 0; }
 .coach-nav { display: flex; align-items: center; gap: 4px; }
 .coach-nav .mono { font-size: 12px; color: var(--ink-2); min-width: 54px; text-align: center; }
 .coach-nav .chip-btn { margin-left: auto; }
@@ -395,7 +401,7 @@ textarea.paste::placeholder { color: var(--ink-3); }
 /* Seat signals: typing / check bubbles float off the name (above for the top seat, below for the bottom) */
 .seat .name { position: relative; }
 .bubble { position: absolute; left: calc(100% + 2px); bottom: calc(100% - 4px); z-index: 5; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: 13px 13px 13px 4px; background: rgb(38 38 41 / 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 0 0 1px var(--line-2); font: 500 11px/1 var(--mono); letter-spacing: 0; color: var(--ink); white-space: nowrap; transform-origin: bottom left; animation: bubble-in 0.45s var(--out) both; }
-.seat.bottom .bubble { bottom: auto; top: calc(100% - 4px); border-radius: 4px 13px 13px 13px; transform-origin: top left; }
+.seat.at-bottom .bubble { bottom: auto; top: calc(100% - 4px); border-radius: 4px 13px 13px 13px; transform-origin: top left; }
 .bubble.typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-2); animation: typing 1.2s var(--ease) infinite; }
 .bubble.typing i:nth-child(2) { animation-delay: 0.15s; }
 .bubble.typing i:nth-child(3) { animation-delay: 0.3s; }
