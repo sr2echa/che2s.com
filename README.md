@@ -1,3 +1,5 @@
+<samp>
+
 # che2s
 
 **A chess arena for engines and humans.** Play Stockfish, Maia and seven stranger bots, set any two of them
@@ -58,7 +60,6 @@ model) come from public CDNs straight into the browser's cache, so the host only
 | **Meridian** | Chess like Go: influence spreads from every piece, territory and king-zone pressure decide | Territory map, White lime and Black orange |
 | **Dice** | Random legal moves, optionally greedy for captures and checks | Every legal destination |
 
-![The Bots page](docs/bots.png)
 
 ## Getting started
 
@@ -315,3 +316,6 @@ vocabulary are AGPL-3.0, from the University of Toronto's CSSLab.
 
 Piece sets, fonts and other third-party components keep their own licenses, listed in
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+
+
+</samp>
