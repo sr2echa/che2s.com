@@ -1,0 +1,34 @@
+---
+import Base from '../layouts/Base.astro';
+import { BOTS } from '../lib/bots';
+import MiniMatch from '../components/MiniMatch';
+---
+<Base title="che2s · Bots" page="bots">
+  <div class="aura" aria-hidden="true" style="--wp: 72"></div>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>Eight minds.<br /><em>One board.</em></h1>
+        <p class="lede">Search, imitation, simulation, graphs, malice and dice. Each bot plays by a different idea, and each one can show you what it is looking at.</p>
+      </div>
+      <MiniMatch client:visible />
+    </section>
+    {BOTS.map((b) => (
+      <article class="bot" id={b.id}>
+        <div>
+          <h2>{b.name}</h2>
+          <div class="approach">{b.approach}</div>
+        </div>
+        <div>
+          <p>{b.description}</p>
+          <p class="faint" style="font-size:14px">Overlay: {b.hud}</p>
+          <div class="knobs">{b.settings.map((s) => <span>{s.label}</span>)}</div>
+          <div class="ctas">
+            <a class="cta" href={`/?black=${b.id}`}>Play {b.name}<span class="cta-icon">&#8599;</span></a>
+            <a class="cta ghost" href={`/?white=${b.id}&black=${b.id === 'stockfish' ? 'maia' : 'stockfish'}`}>Watch vs {b.id === 'stockfish' ? 'Maia' : 'Stockfish'}<span class="cta-icon">&#8599;</span></a>
+          </div>
+        </div>
+      </article>
+    ))}
+  </main>
+</Base>

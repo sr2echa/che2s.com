@@ -1,0 +1,25 @@
+---
+import '../styles/global.css';
+const { title = 'che2s', page } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A chess arena for engines and humans. Play Stockfish, Maia and stranger bots, watch them fight, see what they see." />
+    <meta name="theme-color" content="#0d0d0e" />
+    <link rel="icon" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/"><i aria-hidden="true"></i>che2s</a>
+      <nav>
+        <a href="/" aria-current={page === 'arena' ? 'page' : undefined}>Arena</a>
+        <a href="/bots" aria-current={page === 'bots' ? 'page' : undefined}>Bots</a>
+      </nav>
+    </header>
+    <slot />
+  </body>
+</html>

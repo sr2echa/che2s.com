@@ -1,0 +1,33 @@
+{
+  "name": "che2s",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "playwright test",
+    "postinstall": "mkdir -p public/engine public/ort && cp node_modules/stockfish/bin/stockfish-19-lite-single.* public/engine/ && cp node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm public/ort/",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/react": "^7.1.5",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "astro": "^7.4.8",
+    "chessground": "^9.2.1",
+    "chessops": "^0.15.1",
+    "onnxruntime-web": "^1.31.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "stockfish": "^19.0.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@playwright/test": "^1.65.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^6.0.3"
+  }
+}
