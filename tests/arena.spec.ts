@@ -153,7 +153,7 @@ test('seat sheet: switch bot and tune settings', async ({ page }) => {
 test('bots page lists the roster and links into the arena', async ({ page }) => {
   await page.goto('/bots');
   await expect(page.locator('article.bot')).toHaveCount(9);
-  await page.getByRole('link', { name: 'Play Boris Trapsky' }).click();
+  await page.locator('#trapsky').getByRole('link', { name: /^Play/ }).click();
   await expect(page.getByTestId('seat-black')).toContainText('Boris Trapsky');
 });
 

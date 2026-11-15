@@ -21,37 +21,38 @@ const range = (s: Setting) =>
       <div class="hero-copy">
         <h1><span>Nine minds.</span><em>One board.</em></h1>
         <p class="lede">Search, imitation, simulation, graphs, territory, malice and dice. Each bot plays by a different idea, and each one can show you what it is looking at.</p>
+        <a class="cta" href="/">Play in the Arena<span class="cta-icon">&#8599;</span></a>
       </div>
       <MiniMatch client:visible />
     </section>
 
-    {BOTS.map((b) => (
-      <article class="bot" id={b.id}>
-        <div class="who">
-          <span class="mono-badge mono">{monogram(b.name)}</span>
-          <div>
-            <h2>{b.name}</h2>
-            <div class="approach mono">{b.approach}</div>
-            <p>{b.description}</p>
-            <div class="ctas">
-              <a class="cta small" href={`/?black=${b.id}`}>Play {b.name}<span class="cta-icon">&#8599;</span></a>
-              <a class="cta small ghost" href={`/?white=${b.id}&black=${b.id === 'stockfish' ? 'maia' : 'stockfish'}`}>Watch vs {b.id === 'stockfish' ? 'Maia' : 'Stockfish'}<span class="cta-icon">&#8599;</span></a>
+    <section class="roster-grid" aria-label="Bots">
+      {BOTS.map((b) => (
+        <article class="bot" id={b.id}>
+          <header>
+            <span class="mono-badge mono">{monogram(b.name)}</span>
+            <div>
+              <h2>{b.name}</h2>
+              <div class="approach mono">{b.approach}</div>
             </div>
+          </header>
+          <p class="desc">{b.description}</p>
+          <div class="vision">
+            <div class="vision-head"><span class="label">Vision</span><b>{b.vision}</b></div>
+            <LegendBoard client:visible items={b.legend} pieces="cburnett" />
           </div>
-        </div>
-        <div class="vision">
-          <span class="label">Vision</span>
-          <h3>{b.vision}</h3>
-          <p class="faint">{b.hud}</p>
-          <LegendBoard client:visible items={b.legend} pieces="cburnett" />
-        </div>
-        <dl class="specs">
-          <span class="label">Settings</span>
-          {b.settings.map((s) => (
-            <div><dt>{s.label}</dt><dd class="mono">{range(s)}</dd></div>
-          ))}
-        </dl>
-      </article>
-    ))}
+          <dl class="specs">
+            <span class="label">Settings</span>
+            {b.settings.map((s) => (
+              <div><dt>{s.label}</dt><dd class="mono">{range(s)}</dd></div>
+            ))}
+          </dl>
+          <div class="ctas">
+            <a class="cta small" href={`/?black=${b.id}`}>Play<span class="cta-icon">&#8599;</span></a>
+            <a class="cta small ghost" href={`/?white=${b.id}&black=${b.id === 'stockfish' ? 'maia' : 'stockfish'}`}>Watch vs {b.id === 'stockfish' ? 'Maia' : 'Stockfish'}<span class="cta-icon">&#8599;</span></a>
+          </div>
+        </article>
+      ))}
+    </section>
   </main>
 </Base>
