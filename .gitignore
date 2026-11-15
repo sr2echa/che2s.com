@@ -7,3 +7,4 @@ playwright-report/
 .che2s-profile/
 public/engine/
 public/ort/
+public/models/

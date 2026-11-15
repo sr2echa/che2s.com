@@ -7,6 +7,8 @@ import vocab from './data/all_moves_maia3.json';
 // Weights: AGPL-3.0, fetched on first use and cached in Cache Storage.
 export const MAIA_URL =
   import.meta.env?.PUBLIC_MAIA_URL ?? 'https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/main/public/maia3/maia3_simplified.onnx';
+/** Optional self-hosted copy (`npm run fetch:maia`); used first when present. */
+const LOCAL_URL = '/models/maia3_simplified.onnx';
 const MAIA_BYTES = 45_683_686;
 const PIECES = 'PNBRQKpnbrqk';
 const ROLE = { pawn: 'P', knight: 'N', bishop: 'B', rook: 'R', queen: 'Q', king: 'K' } as const;
@@ -24,7 +26,8 @@ async function load(ctx: ThinkCtx) {
   let bytes: ArrayBuffer;
   if (res) bytes = await res.arrayBuffer();
   else {
-    res = await fetch(MAIA_URL);
+    res = await fetch(LOCAL_URL).catch(() => undefined);
+    if (!res?.ok || res.headers.get('content-type')?.includes('text/html')) res = await fetch(MAIA_URL);
     if (!res.ok || !res.body) throw new Error(`Maia download failed (${res.status})`);
     const reader = res.body.getReader();
     const chunks: Uint8Array[] = [];

@@ -8,7 +8,8 @@
     "preview": "astro preview",
     "test": "playwright test",
     "postinstall": "mkdir -p public/engine public/ort && cp node_modules/stockfish/bin/stockfish-19-lite-single.* public/engine/ && cp node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm public/ort/",
-    "check": "astro check"
+    "check": "astro check",
+    "fetch:maia": "mkdir -p public/models && curl -fL -o public/models/maia3_simplified.onnx https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/main/public/maia3/maia3_simplified.onnx"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.5",
