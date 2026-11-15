@@ -5,6 +5,4 @@ test-results/
 playwright-report/
 .ref/
 .che2s-profile/
-public/engine/
-public/ort/
 public/models/

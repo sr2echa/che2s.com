@@ -1,4 +1,18 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+// Stockfish is loaded from jsDelivr (this repo's engines/stockfish/). Serve those URLs from the local files with
+// CDN-like headers, so the suite exercises the real cross-origin loading path without depending on CDN uptime.
+test.beforeEach(async ({ context }) => {
+  await context.route('https://cdn.jsdelivr.net/gh/sr2echa/che2s.com@main/engines/stockfish/*', (route) => {
+    const file = new URL(route.request().url()).pathname.split('/').pop()!;
+    route.fulfill({
+      body: readFileSync(`engines/stockfish/${file}`),
+      contentType: file.endsWith('.wasm') ? 'application/wasm' : 'text/javascript',
+      headers: { 'access-control-allow-origin': '*', 'cross-origin-resource-policy': 'cross-origin' },
+    });
+  });
+});
 
 const BOTS = ['stockfish', 'trapsky', 'crystal', 'worstfish', 'shannon', 'monte', 'meridian', 'dice'];
 
@@ -210,7 +224,7 @@ test('game settings: piece set and judge off persist; judge off hides the evalua
   await expect(page.getByTestId('judge')).toHaveCount(0);
   // Chessground re-creates piece nodes on resize, so poll rather than hold a handle.
   await expect
-    .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('cg-board piece.knight.white')!).backgroundImage))
+    .poll(() => page.evaluate(() => { const el = document.querySelector('cg-board piece.knight.white'); return el ? getComputedStyle(el).backgroundImage : ''; }))
     .toContain('/pieces/kiwen-suwi/wN.svg');
   await page.evaluate(() => localStorage.clear());
 });
@@ -258,4 +272,15 @@ test('Meridian shows a live territory map', async ({ page }) => {
   await expect(page.getByTestId('eye')).toContainText(/White \d+, Black \d+/);
   await page.getByTestId('legend').getByTestId('lm-field-black').hover();
   await expect(page.getByTestId('legend').locator('figcaption')).toContainText("Black's territory");
+});
+
+test('Stockfish falls back to unpkg when jsDelivr fails', async ({ page, context }) => {
+  await context.unrouteAll();
+  await context.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ status: 503, body: 'down' }));
+  await context.route('https://unpkg.com/stockfish@*/bin/*', (route) => {
+    const file = new URL(route.request().url()).pathname.split('/').pop()!;
+    route.fulfill({ body: readFileSync(`engines/stockfish/${file}`), contentType: file.endsWith('.wasm') ? 'application/wasm' : 'text/javascript', headers: { 'access-control-allow-origin': '*' } });
+  });
+  await page.goto('/?white=human&black=human');
+  await expect(page.getByTestId('judge-eval')).toHaveText(/^[+-]\d/, { timeout: 30_000 });
 });

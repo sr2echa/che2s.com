@@ -6,7 +6,8 @@ Stockfish judge scores every position live, rates every move from Brilliant to B
 through the game afterwards.
 
 Everything runs in the browser: WebAssembly Stockfish, an ONNX neural network for Maia, and the
-JavaScript bots in a Web Worker. There is no backend.
+JavaScript bots in a Web Worker. There is no backend, and the heavy files (engine, neural-net runtime,
+model) come from public CDNs straight into the browser's cache, so the host only serves the app itself.
 
 ![The arena: Stockfish's candidate lines on the board, the judge's evaluation and move rating on the right](docs/arena.png)
 
@@ -64,11 +65,12 @@ JavaScript bots in a Web Worker. There is no backend.
 Requirements: Node.js 22 or newer (Astro 7).
 
 ```bash
-npm install          # also copies the Stockfish and ONNX Runtime WASM files into public/
+npm install
 npm run dev          # http://localhost:4321
 ```
 
-Optional: keep Maia's 44 MB network locally instead of downloading it from GitHub on first use.
+Optional, for development: keep Maia's 44 MB network on disk instead of downloading it on first use.
+Only the dev server uses this copy; production always downloads the model in the browser.
 
 ```bash
 npm run fetch:maia   # saves public/models/maia3_simplified.onnx (git-ignored)
@@ -88,6 +90,7 @@ Keyboard: `←` `→` step through moves, `Home` / `End` jump, `F` flips the boa
 ## How it works
 
 ```
+engines/stockfish/  Stockfish 19 lite (JS + WASM), served to browsers by jsDelivr from this repo, never deployed
 src/
   pages/            index.astro (the arena), bots.astro (the roster)
   components/       Arena (game state + layout), Board (chessground), Overlay (HUD drawing),
@@ -96,7 +99,7 @@ src/
     bots/           one file per bot + index.ts (the registry)
     brain.worker.ts runs bot.think() off the main thread, one Stockfish per bot
     brain.ts        main-thread client for the worker
-    stockfish.ts    small UCI wrapper around any WASM UCI engine
+    stockfish.ts    UCI wrapper; loads Stockfish from jsDelivr (unpkg as fallback) in a blob worker
     useJudge.ts     live judge (its own Stockfish instance)
     review.ts       cached analyst, move classification, explanations, full review
     chess.ts        helpers over chessops (moves as standard UCI, SAN, scores, captures)
@@ -219,11 +222,13 @@ readable starting points for a search-based bot.
 
 ## Adding a UCI engine
 
-`ctx.engine()` hands each bot its own Stockfish. The wrapper in `src/lib/stockfish.ts` speaks plain UCI,
-so any engine compiled to a WASM web worker works the same way:
+`ctx.engine()` hands each bot its own Stockfish. The wrapper in `src/lib/stockfish.ts` speaks plain UCI, so
+any engine compiled to a WASM web worker works the same way:
 
-1. Put the engine's `.js` and `.wasm` in `public/engine/`. If it comes from npm, copy it in the
-   `postinstall` script in `package.json`, as is done for Stockfish.
+1. Ship the engine's `.js` and `.wasm`. Either put them in `public/engine/` and pass a same-origin URL, or
+   (to keep them off your host, as Stockfish is) commit them under `engines/` and load them from jsDelivr,
+   following `SOURCES` and `cdnWorker()` in `stockfish.ts`. Browsers refuse cross-origin worker scripts, so
+   CDN builds start in a same-origin blob worker that `importScripts()` the CDN file.
 2. Create one instance in your bot file, lazily, and reuse it:
 
    ```ts
@@ -244,14 +249,19 @@ so any engine compiled to a WASM web worker works the same way:
 `stop()` ends the current one. Multi-threaded WASM builds need cross-origin isolation headers; the
 single-threaded builds used here do not.
 
+To upgrade Stockfish: bump the exact `stockfish` version in `package.json` and `STOCKFISH_VERSION` in
+`stockfish.ts`, then copy the new lite single-threaded files from `node_modules/stockfish/bin/` into
+`engines/stockfish/` (updating the constant `FILE` if the name changed).
+
 ## Adding a neural network
 
 Maia (`src/lib/bots/maia.ts`) is the template:
 
 - `onnxruntime-web` is imported dynamically inside `think()`, so it only loads when the bot plays.
 - The model is downloaded once with streamed progress (`ctx.status`) and cached with the Cache Storage
-  API. A copy in `public/models/` is preferred when present, otherwise the remote URL is used.
-- Only the `.wasm` runtime is served from `public/ort/`; its JS glue comes from the npm bundle.
+  API. In development a copy in `public/models/` is used when present.
+- The ONNX Runtime JS glue and `.wasm` load from jsDelivr at exactly the version that was bundled
+  (`ort.env.versions.web`); the build aliases `onnxruntime-web/wasm` to the variant that embeds no `.wasm`.
 - Encode the position into the network's input tensor, mask illegal moves, softmax what is left, and
   return the best (or a sampled) move with the probabilities as the HUD.
 
@@ -270,16 +280,24 @@ settings persistence, and headless checks of the JavaScript bots (legal moves, c
 
 ## Deploying
 
-`npm run build` produces a fully static site in `dist/`, so it can go on any static host. On Vercel,
-import the repository and keep the detected Astro settings. No adapter or server is needed.
+`npm run build` produces a fully static site in `dist/` (about 1 MB), so it can go on any static host. On
+Vercel, import the repository and keep the detected Astro settings. No adapter, server or special headers
+(COOP/COEP) are needed.
 
-- **Bandwidth per visitor**: about 0.6 MB for the page, plus 1.8 MB for the Stockfish WASM (every arena
-  visitor) and 14 MB for the ONNX runtime (only when Maia plays). Browsers cache all three.
-- **Maia's model** (44 MB) loads from GitHub by default, which is not a CDN and can be slow or throttled.
-  For production, host `maia3_simplified.onnx` somewhere with CORS enabled (Cloudflare R2, a Hugging Face
-  repository, any CDN) and set `PUBLIC_MAIA_URL` at build time. Don't put it in the deployment itself
-  unless you're happy for every new Maia player to pull 44 MB from your host.
-- **Multi-threading is not used**, so no special headers (COOP/COEP) are required.
+Your host serves only the app (about 0.6 MB per visitor). Everything heavy is downloaded by the browser
+from public CDNs and cached there:
+
+| Asset | Size | Loaded from | When |
+| --- | --- | --- | --- |
+| Stockfish 19 lite (JS + WASM) | 1.8 MB | jsDelivr (this repo's `engines/stockfish`), unpkg fallback | Every arena visit (the judge uses it) |
+| ONNX Runtime (JS + WASM) | 14 MB | jsDelivr (npm `onnxruntime-web`) | Only when Maia plays |
+| Maia-3 model | 44 MB | GitHub (CSSLab), or `PUBLIC_MAIA_URL` | Only when Maia plays; kept in Cache Storage |
+
+- jsDelivr serves `engines/stockfish` from the default branch of this repository, so the repository must
+  be public and pushed before the engine can load.
+- GitHub is not a CDN, so it can be slow or throttled for the Maia model. For heavy traffic, host
+  `maia3_simplified.onnx` somewhere with CORS enabled (Cloudflare R2, a Hugging Face repository) and set
+  `PUBLIC_MAIA_URL` at build time.
 
 ## License
 

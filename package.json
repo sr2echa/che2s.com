@@ -13,7 +13,6 @@
     "build": "astro build",
     "preview": "astro preview",
     "test": "playwright test",
-    "postinstall": "mkdir -p public/engine public/ort && cp node_modules/stockfish/bin/stockfish-19-lite-single.* public/engine/ && cp node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm public/ort/",
     "check": "astro check",
     "fetch:maia": "mkdir -p public/models && curl -fL -o public/models/maia3_simplified.onnx https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/main/public/maia3/maia3_simplified.onnx"
   },
@@ -28,7 +27,7 @@
     "onnxruntime-web": "^1.31.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "stockfish": "^19.0.1"
+    "stockfish": "19.0.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
