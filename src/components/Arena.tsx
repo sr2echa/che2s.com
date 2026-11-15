@@ -89,6 +89,13 @@ export default function Arena() {
   }, [shownFen, ply, game.fens]);
 
   const bothBots = seats.white.id !== HUMAN && seats.black.id !== HUMAN;
+
+  // One human at the table: put their pieces at the bottom. Two humans or two bots: leave the board as is.
+  const humans = `${seats.white.id === HUMAN}${seats.black.id === HUMAN}`;
+  useEffect(() => {
+    if (humans === 'truefalse') setOrientation('white');
+    else if (humans === 'falsetrue') setOrientation('black');
+  }, [humans]);
   const hasBot = seats.white.id !== HUMAN || seats.black.id !== HUMAN;
 
   // ---- bot turns -------------------------------------------------------------

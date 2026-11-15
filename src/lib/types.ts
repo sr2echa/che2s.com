@@ -1,9 +1,11 @@
 import type { Stockfish } from './stockfish';
 
+/** `off`: key of a toggle that, when on, disables this setting (e.g. Elo is off at full strength). */
+type Base = { key: string; label: string; hint?: string; off?: string };
 export type Setting =
-  | { key: string; label: string; hint?: string; type: 'range'; min: number; max: number; step: number; default: number; unit?: string }
-  | { key: string; label: string; hint?: string; type: 'choice'; options: { value: string; label: string }[]; default: string }
-  | { key: string; label: string; hint?: string; type: 'toggle'; default: boolean };
+  | (Base & { type: 'range'; min: number; max: number; step: number; default: number; unit?: string })
+  | (Base & { type: 'choice'; options: { value: string; label: string }[]; default: string })
+  | (Base & { type: 'toggle'; default: boolean });
 
 export type Settings = Record<string, number | string | boolean>;
 

@@ -34,7 +34,7 @@ export const stockfish: BotDef = {
   hud: 'Candidate lines with evaluations',
   settings: [
     { key: 'full', label: 'Full strength', hint: 'Ignore the Elo cap', type: 'toggle', default: false },
-    { key: 'elo', label: 'Elo', hint: 'Stockfish limits itself to play near this rating', type: 'range', min: 1320, max: 3190, step: 10, default: 1800 },
+    { key: 'elo', label: 'Elo', hint: 'Stockfish limits itself to play near this rating', off: 'full', type: 'range', min: 1320, max: 3190, step: 10, default: 1800 },
     { key: 'movetime', label: 'Think time', type: 'range', min: 100, max: 5000, step: 100, default: 800, unit: 'ms' },
     { key: 'lines', label: 'Lines shown', hint: 'Candidate moves visible in the HUD', type: 'range', min: 1, max: 5, step: 1, default: 3 },
   ],

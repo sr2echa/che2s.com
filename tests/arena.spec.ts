@@ -151,3 +151,20 @@ test('bots page lists the roster and links into the arena', async ({ page }) => 
   await page.getByRole('link', { name: 'Play Boris Trapsky' }).click();
   await expect(page.getByTestId('seat-black')).toContainText('Boris Trapsky');
 });
+
+test('human playing Black gets the board flipped automatically', async ({ page }) => {
+  await page.goto('/?white=human&black=human');
+  await page.getByLabel('Settings for white').click();
+  await page.getByTestId('pick-dice').click();
+  await page.keyboard.press('Escape');
+  // Black is now the only human: ranks rail reads 1..8 top to bottom.
+  await expect(page.locator('.rail.ranks span').first()).toHaveText('1');
+});
+
+test('Stockfish full strength disables the Elo slider', async ({ page }) => {
+  await page.goto('/?white=human&black=stockfish');
+  await page.getByLabel('Settings for black').click();
+  await expect(page.getByLabel('Elo')).toBeEnabled();
+  await page.getByRole('switch', { name: 'Full strength' }).click();
+  await expect(page.getByLabel('Elo')).toBeDisabled();
+});

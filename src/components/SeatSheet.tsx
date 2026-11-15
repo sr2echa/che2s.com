@@ -60,7 +60,7 @@ export default function SeatSheet({ side, seat, onChange, onClose }: { side: 'wh
               <div>
                 <h3 className="section-title">Settings</h3>
                 {bot.settings.map((s) => (
-                  <Field key={s.key} s={s} value={values[s.key]} onChange={(v) => onChange({ ...seat, settings: { ...seat.settings, [bot.id]: { ...values, [s.key]: v } } })} />
+                  <Field key={s.key} s={s} value={values[s.key]} disabled={!!(s.off && values[s.off])} onChange={(v) => onChange({ ...seat, settings: { ...seat.settings, [bot.id]: { ...values, [s.key]: v } } })} />
                 ))}
                 <div className="field inline">
                   <div>

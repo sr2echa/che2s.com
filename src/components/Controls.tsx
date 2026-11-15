@@ -4,10 +4,11 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
   return <button role="switch" aria-checked={checked} aria-label={label} className="switch" onClick={() => onChange(!checked)} />;
 }
 
-export function Range({ value, min, max, step, onChange, label }: { value: number; min: number; max: number; step: number; onChange(v: number): void; label: string }) {
+export function Range({ value, min, max, step, onChange, label, disabled }: { value: number; min: number; max: number; step: number; onChange(v: number): void; label: string; disabled?: boolean }) {
   return (
     <input
       type="range"
+      disabled={disabled}
       aria-label={label}
       min={min}
       max={max}
@@ -21,7 +22,7 @@ export function Range({ value, min, max, step, onChange, label }: { value: numbe
 
 const fmt = (s: Setting, v: unknown) => (s.type === 'range' ? `${v}${s.unit ? ` ${s.unit}` : ''}` : '');
 
-export function Field({ s, value, onChange }: { s: Setting; value: unknown; onChange(v: number | string | boolean): void }) {
+export function Field({ s, value, onChange, disabled }: { s: Setting; value: unknown; onChange(v: number | string | boolean): void; disabled?: boolean }) {
   if (s.type === 'toggle')
     return (
       <div className="field inline">
@@ -33,14 +34,14 @@ export function Field({ s, value, onChange }: { s: Setting; value: unknown; onCh
       </div>
     );
   return (
-    <div className="field">
+    <div className={`field ${disabled ? 'disabled' : ''}`} aria-disabled={disabled}>
       <div className="head">
         <span>{s.label}</span>
         <span className="val">{fmt(s, value)}</span>
       </div>
       {s.hint && <div className="hint">{s.hint}</div>}
       {s.type === 'range' ? (
-        <Range label={s.label} value={value as number} min={s.min} max={s.max} step={s.step} onChange={onChange} />
+        <Range label={s.label} value={value as number} min={s.min} max={s.max} step={s.step} onChange={onChange} disabled={disabled} />
       ) : (
         <div className="seg" role="group" aria-label={s.label}>
           {s.options.map((o) => (
