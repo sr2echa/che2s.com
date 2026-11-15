@@ -5,12 +5,6 @@ import type { Setting } from '../lib/types';
 import MiniMatch from '../components/MiniMatch';
 import { LegendBoard } from '../components/Overlay';
 
-const monogram = (name: string) => {
-  const words = name.split(' ');
-  if (words.length > 1) return words.map((w) => w[0]).join('');
-  const cap = name.slice(1).search(/[A-Z]/);
-  return cap >= 0 ? name[0] + name[cap + 1] : name.slice(0, 2);
-};
 const range = (s: Setting) =>
   s.type === 'range' ? `${s.min}-${s.max}${s.unit ? (s.unit === '%' ? '%' : ` ${s.unit}`) : ''}` : s.type === 'toggle' ? 'on / off' : s.options.map((o) => o.label).join(' / ');
 ---
@@ -30,11 +24,8 @@ const range = (s: Setting) =>
       {BOTS.map((b) => (
         <article class="bot" id={b.id}>
           <header>
-            <span class="mono-badge mono">{monogram(b.name)}</span>
-            <div>
-              <h2>{b.name}</h2>
-              <div class="approach mono">{b.approach}</div>
-            </div>
+            <h2>{b.name}</h2>
+            <div class="approach mono">{b.approach}</div>
           </header>
           <p class="desc">{b.description}</p>
           <div class="vision">
