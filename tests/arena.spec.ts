@@ -224,16 +224,21 @@ test('judge rates moves live and explains them', async ({ page }) => {
   await expect(page.getByTestId('review-badge')).toBeVisible();
 });
 
-test('HUD legends: Bot view, seat popover and the Bots page', async ({ page }) => {
+test('HUD legends: a sample board that explains each mark on hover', async ({ page }) => {
   await page.goto('/?white=human&black=crystal');
   await page.getByTestId('hud-black').click();
-  await expect(page.getByTestId('legend')).toContainText('PageRank');
+  const legend = page.getByTestId('legend');
+  await legend.getByTestId('lm-node').hover();
+  await expect(legend.locator('figcaption')).toContainText('PageRank');
+  await legend.getByTestId('lm-attack').click();
+  await expect(legend.locator('figcaption')).toContainText('attacking');
   await page.getByTestId('legend-black').click();
-  await expect(page.getByTestId('legend-pop-black')).toContainText("Judge's best move");
+  await page.getByTestId('legend-pop-black').getByTestId('lm-judge').hover();
+  await expect(page.getByTestId('legend-pop-black').locator('figcaption')).toContainText("judge's best move");
   await page.mouse.click(5, 5);
   await expect(page.getByTestId('legend-pop-black')).toHaveCount(0);
   await page.goto('/bots');
-  await expect(page.locator('article.bot .legend')).toHaveCount(8);
+  await expect(page.locator('article.bot .legend-board')).toHaveCount(8);
 });
 
 test('bots wait while a settings sheet is open', async ({ page }) => {

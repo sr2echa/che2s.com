@@ -8,7 +8,7 @@ import {
   UserSwitchIcon, CopySimpleIcon, GearSixIcon, InfoIcon, EyeIcon, EyeSlashIcon, SlidersHorizontalIcon, PlusIcon, CheckIcon, ArrowUpRightIcon,
 } from '@phosphor-icons/react';
 import Board from './Board';
-import { Heat, Marks, Legend, COMMON_LEGEND } from './Overlay';
+import { Heat, Marks, LegendBoard, COMMON_LEGEND } from './Overlay';
 import SeatSheet, { HUMAN, settingsOf, type Seat } from './SeatSheet';
 import ReviewPanel, { Insight } from './ReviewPanel';
 import { useLiveRatings } from '../lib/useLiveRatings';
@@ -345,7 +345,7 @@ export default function Arena() {
             {legendFor === s && (
               <div className="popover" role="dialog" aria-label={`${bot.name} legend`}>
                 <b>{bot.name}</b>
-                <Legend items={[...bot.legend, ...COMMON_LEGEND]} testid={`legend-pop-${s}`} />
+                <LegendBoard items={[...bot.legend, ...COMMON_LEGEND]} pieces={pieceSet} testid={`legend-pop-${s}`} />
               </div>
             )}
           </span>
@@ -539,9 +539,7 @@ export default function Arena() {
                 {visionBot && (
                   <>
                     <span className="label" style={{ marginTop: 6 }}>How to read it</span>
-                    <Legend items={visionBot.legend} testid="legend" />
-                    <span className="label">Also on the board</span>
-                    <Legend items={COMMON_LEGEND} />
+                    <LegendBoard items={[...visionBot.legend, ...COMMON_LEGEND]} pieces={pieceSet} testid="legend" />
                   </>
                 )}
               </div>

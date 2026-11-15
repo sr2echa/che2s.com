@@ -1,4 +1,4 @@
-import type React from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import type { Hud, Tone, Legend as LegendT, LegendMark } from '../lib/types';
 
 type Orient = 'white' | 'black';
@@ -48,7 +48,89 @@ function arrowPath(x1: number, y1: number, x2: number, y2: number, inset: number
   return { d: 'M' + pts.map((p) => p.join(' ')).join(' L'), tip, ux, uy };
 }
 
+// ---- Shared mark primitives (board overlay and legend board) ----------------------------
+
+/** Arrow with gradient shaft, soft rounded head, optional label. `uid` keeps gradient ids unique per SVG; `size` is the board width in squares. */
+export function Arrow({ x1, y1, x2, y2, tone, weight, label, uid, size = 8, hit }: { x1: number; y1: number; x2: number; y2: number; tone: Tone; weight?: number; label?: string; uid: string; size?: number; hit?: boolean }) {
+  const w = WIDTH[tone] * (tone === 'alt' ? 0.75 + 0.5 * (weight ?? 0.5) : 1);
+  const head = Math.max(0.26, w * 2.3); // drawn with a thick round-join stroke, so the visible head is softer and a little larger
+  const { d, tip, ux, uy } = arrowPath(x1, y1, x2, y2, 0.12 + head * 0.7);
+  const hx = tip[0] + ux * head * 0.75, hy = tip[1] + uy * head * 0.75;
+  const px = -uy, py = ux;
+  const c = TONE[tone];
+  const id = `${uid}-${tone}`;
+  return (
+    <g data-testid={`arrow-${tone}`} filter={tone === 'pick' ? `url(#${uid}-glow)` : undefined} opacity={tone === 'alt' ? 0.72 : 1}>
+      <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={x1} y1={y1} x2={hx} y2={hy}>
+        <stop offset="0" stopColor={c} stopOpacity={0.15} />
+        <stop offset="1" stopColor={c} stopOpacity={1} />
+      </linearGradient>
+      {hit && <path d={d} fill="none" stroke="transparent" strokeWidth={0.6} strokeLinecap="round" />}
+      <circle cx={x1} cy={y1} r={w * 0.9} fill={c} opacity={0.35} />
+      {tone === 'better' ? (
+        <path d={d} fill="none" stroke={c} strokeOpacity={0.85} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="0.02 0.17" />
+      ) : (
+        <path d={d} fill="none" stroke={`url(#${id})`} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" pathLength={1} className="draw" />
+      )}
+      <path
+        className="head"
+        d={`M${hx} ${hy} L${tip[0] - ux * head * 0.25 + px * head * 0.55} ${tip[1] - uy * head * 0.25 + py * head * 0.55} L${tip[0] + ux * head * 0.05} ${tip[1] + uy * head * 0.05} L${tip[0] - ux * head * 0.25 - px * head * 0.55} ${tip[1] - uy * head * 0.25 - py * head * 0.55} Z`}
+        fill={c}
+        stroke={c}
+        strokeWidth={Math.max(0.05, w * 0.7)}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {label && (
+        <g transform={`translate(${Math.min(size - 0.1 - label.length * 0.1, Math.max(0.1, hx + px * 0.18 - label.length * 0.05))} ${Math.min(size - 0.28, Math.max(0.1, hy + py * 0.18 - 0.36))})`} className="tag">
+          <rect width={label.length * 0.1 + 0.16} height={0.26} rx={0.13} fill="rgb(10 10 11 / 0.88)" stroke={c} strokeOpacity={0.35} strokeWidth={0.012} />
+          <text x={0.08} y={0.178} fontSize={0.155} fill={c} fontFamily="Geist Mono Variable, monospace" fontWeight={600} letterSpacing={-0.005}>
+            {label}
+          </text>
+        </g>
+      )}
+    </g>
+  );
+}
+
+/** Curved attack/defence edge between two square centres. */
+export function Edge({ x1, y1, x2, y2, attack, delay = 0, hit }: { x1: number; y1: number; x2: number; y2: number; attack: boolean; delay?: number; hit?: boolean }) {
+  const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+  const nx = -(y2 - y1) / len, ny = (x2 - x1) / len;
+  const bend = attack ? 0.22 : -0.16;
+  const k = 0.3 / len;
+  const sx = x1 + (x2 - x1) * k, sy = y1 + (y2 - y1) * k, ex = x2 - (x2 - x1) * k, ey = y2 - (y2 - y1) * k;
+  const cx = (x1 + x2) / 2 + nx * bend * Math.min(len, 3), cy = (y1 + y2) / 2 + ny * bend * Math.min(len, 3);
+  const c = attack ? TONE.bad : DEFEND;
+  return (
+    <g>
+      {hit && <path d={`M${sx} ${sy} Q${cx} ${cy} ${ex} ${ey}`} fill="none" stroke="transparent" strokeWidth={0.55} />}
+      <path d={`M${sx} ${sy} Q${cx} ${cy} ${ex} ${ey}`} fill="none" stroke={c} strokeWidth={attack ? 0.045 : 0.03} strokeLinecap="round" opacity={0.8} pathLength={1} className="draw" style={{ animationDelay: `${delay}ms` }} />
+      <circle cx={ex} cy={ey} r={0.045} fill={c} />
+    </g>
+  );
+}
+
+/** Importance ring around a piece. */
+export const Ring = ({ x, y, w }: { x: number; y: number; w: number }) => (
+  <g>
+    <circle cx={x} cy={y} r={0.08 + w * 0.34} fill={TONE.pick} opacity={0.06 + w * 0.14} />
+    <circle cx={x} cy={y} r={0.08 + w * 0.34} fill="none" stroke={TONE.pick} strokeWidth={0.02} opacity={0.2 + w * 0.8} />
+  </g>
+);
+
+const GlowDef = ({ uid }: { uid: string }) => (
+  <filter id={`${uid}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="0.06" result="b" />
+    <feMerge>
+      <feMergeNode in="b" />
+      <feMergeNode in="SourceGraphic" />
+    </feMerge>
+  </filter>
+);
+
 export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; orientation: Orient; badge?: { sq: string; glyph: string; color: string }; hint?: string }) {
+  const uid = useId().replace(/:/g, '');
   const arrows = [...(hud?.arrows ?? [])];
   if (hint) arrows.push({ from: hint.slice(0, 2), to: hint.slice(2, 4), tone: 'judge', label: 'engine' });
   // Draw weaker arrows first so the chosen move sits on top.
@@ -56,89 +138,23 @@ export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; ori
   arrows.sort((a, b) => order.indexOf(a.tone ?? 'alt') - order.indexOf(b.tone ?? 'alt'));
   return (
     <svg className="layer marks" viewBox="0 0 8 8" data-testid="hud-marks">
-      <defs>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="0.06" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
+      <defs><GlowDef uid={uid} /></defs>
       {hud?.graph && (
         <g data-testid="hud-graph" className="graph-layer">
           {hud.graph.edges.map((e, i) => {
             const [x1, y1] = xy(e.from, orientation), [x2, y2] = xy(e.to, orientation);
-            const len = Math.hypot(x2 - x1, y2 - y1) || 1;
-            const nx = -(y2 - y1) / len, ny = (x2 - x1) / len;
-            const bend = e.kind === 'attack' ? 0.22 : -0.16;
-            const k = 0.3 / len;
-            const sx = x1 + (x2 - x1) * k, sy = y1 + (y2 - y1) * k, ex = x2 - (x2 - x1) * k, ey = y2 - (y2 - y1) * k;
-            const cx = (x1 + x2) / 2 + nx * bend * Math.min(len, 3), cy = (y1 + y2) / 2 + ny * bend * Math.min(len, 3);
-            const c = e.kind === 'attack' ? TONE.bad : DEFEND;
-            return (
-              <g key={i}>
-                <path d={`M${sx} ${sy} Q${cx} ${cy} ${ex} ${ey}`} fill="none" stroke={c} strokeWidth={e.kind === 'attack' ? 0.045 : 0.03} strokeLinecap="round" opacity={0.8} pathLength={1} className="draw" style={{ animationDelay: `${(i % 24) * 12}ms` }} />
-                <circle cx={ex} cy={ey} r={0.045} fill={c} />
-              </g>
-            );
+            return <Edge key={i} x1={x1} y1={y1} x2={x2} y2={y2} attack={e.kind === 'attack'} delay={(i % 24) * 12} />;
           })}
           {hud.graph.nodes.map((n) => {
             const [x, y] = xy(n.sq, orientation);
-            return (
-              <g key={n.sq}>
-                <circle cx={x} cy={y} r={0.08 + n.w * 0.34} fill={TONE.pick} opacity={0.06 + n.w * 0.14} />
-                <circle cx={x} cy={y} r={0.08 + n.w * 0.34} fill="none" stroke={TONE.pick} strokeWidth={0.02} opacity={0.2 + n.w * 0.8} />
-              </g>
-            );
+            return <Ring key={n.sq} x={x} y={y} w={n.w} />;
           })}
         </g>
       )}
-
       {arrows.map((a, i) => {
-        const tone = (a.tone ?? 'alt') as Tone;
         const [x1, y1] = xy(a.from, orientation), [x2, y2] = xy(a.to, orientation);
-        const w = WIDTH[tone] * (tone === 'alt' ? 0.75 + 0.5 * (a.weight ?? 0.5) : 1);
-        const head = Math.max(0.26, w * 2.3); // drawn with a thick round-join stroke, so the visible head is softer and a little larger
-        const { d, tip, ux, uy } = arrowPath(x1, y1, x2, y2, 0.12 + head * 0.7);
-        const hx = tip[0] + ux * head * 0.75, hy = tip[1] + uy * head * 0.75;
-        const px = -uy, py = ux;
-        const c = TONE[tone];
-        const id = `g${i}-${tone}`;
-        return (
-          <g key={`${a.from}${a.to}${tone}${i}`} data-testid={`arrow-${tone}`} filter={tone === 'pick' ? 'url(#glow)' : undefined} opacity={tone === 'alt' ? 0.72 : 1}>
-            <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={x1} y1={y1} x2={hx} y2={hy}>
-              <stop offset="0" stopColor={c} stopOpacity={0.15} />
-              <stop offset="1" stopColor={c} stopOpacity={1} />
-            </linearGradient>
-            <circle cx={x1} cy={y1} r={w * 0.9} fill={c} opacity={0.35} />
-            {tone === 'better' ? (
-              <path d={d} fill="none" stroke={c} strokeOpacity={0.85} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="0.02 0.17" />
-            ) : (
-              <path d={d} fill="none" stroke={`url(#${id})`} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" pathLength={1} className="draw" />
-            )}
-            <path
-              className="head"
-              d={`M${hx} ${hy} L${tip[0] - ux * head * 0.25 + px * head * 0.55} ${tip[1] - uy * head * 0.25 + py * head * 0.55} L${tip[0] + ux * head * 0.05} ${tip[1] + uy * head * 0.05} L${tip[0] - ux * head * 0.25 - px * head * 0.55} ${tip[1] - uy * head * 0.25 - py * head * 0.55} Z`}
-              fill={c}
-              stroke={c}
-              strokeWidth={Math.max(0.05, w * 0.7)}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-            {a.label && (
-              <g transform={`translate(${Math.min(7.9 - a.label.length * 0.1, Math.max(0.1, hx + px * 0.18 - a.label.length * 0.05))} ${Math.min(7.72, Math.max(0.1, hy + py * 0.18 - 0.36))})`} className="tag">
-                <rect width={a.label.length * 0.1 + 0.16} height={0.26} rx={0.13} fill="rgb(10 10 11 / 0.88)" stroke={c} strokeOpacity={0.35} strokeWidth={0.012} />
-                <text x={0.08} y={0.178} fontSize={0.155} fill={c} fontFamily="Geist Mono Variable, monospace" fontWeight={600} letterSpacing={-0.005}>
-                  {a.label}
-                </text>
-              </g>
-            )}
-          </g>
-        );
+        return <Arrow key={`${a.from}${a.to}${a.tone}${i}`} x1={x1} y1={y1} x2={x2} y2={y2} tone={(a.tone ?? 'alt') as Tone} weight={a.weight} label={a.label} uid={`${uid}${i}`} />;
       })}
-
       {badge && (() => {
         const [x, y] = xy(badge.sq, orientation);
         return (
@@ -155,39 +171,87 @@ export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; ori
   );
 }
 
-/** A tiny drawing of each legend mark, in the same colours as the board overlay. */
-function Swatch({ mark }: { mark: LegendMark }) {
-  const box = (children: React.ReactNode) => <svg viewBox="0 0 28 16" width="28" height="16" aria-hidden>{children}</svg>;
-  if (mark === 'heat' || mark === 'heat-bad') {
-    const c = mark === 'heat' ? TONE.pick : TONE.bad;
-    return box(<><defs><radialGradient id={`sw-${mark}`}><stop offset="0" stopColor={c} stopOpacity="0.95" /><stop offset="1" stopColor={c} stopOpacity="0" /></radialGradient></defs><circle cx="14" cy="8" r="8" fill={`url(#sw-${mark})`} /></>);
-  }
-  if (mark === 'node') return box(<circle cx="14" cy="8" r="5.5" fill="none" stroke={TONE.pick} strokeWidth="1.4" />);
-  if (mark === 'attack' || mark === 'defend') return box(<path d="M3 12 Q14 0 25 12" fill="none" stroke={mark === 'attack' ? TONE.bad : DEFEND} strokeWidth="1.6" strokeLinecap="round" />);
-  const c = TONE[mark];
-  return box(
-    <>
-      <line x1="3" y1="8" x2="19" y2="8" stroke={c} strokeWidth={mark === 'pick' ? 3 : 2} strokeLinecap="round" strokeDasharray={mark === 'better' ? '0.5 4' : undefined} />
-      <path d="M18 3.5 L26 8 L18 12.5 Z" fill={c} stroke={c} strokeWidth="1.2" strokeLinejoin="round" />
-    </>,
-  );
-}
+// ---- Legend board: a 6x6 sample position with one demo of each mark ------------------------
 
 /** Marks every view can show besides the bot's own. */
 export const COMMON_LEGEND: LegendT = [
-  { mark: 'judge', text: "Judge's best move (Show best move)" },
+  { mark: 'judge', text: "The judge's best move (turn on Show best move)" },
   { mark: 'better', text: 'A better move than the one just played' },
 ];
 
-export function Legend({ items, testid }: { items: LegendT; testid?: string }) {
+type P = [string, number, number];
+/** Where each mark is demonstrated on the 6x6 sample board, and the piece it needs. */
+const DEMO: Record<LegendMark, { pieces: P[]; draw(uid: string): ReactNode; at: [number, number] }> = {
+  pick: { pieces: [['wN', 1, 5]], at: [2, 3], draw: (u) => <Arrow x1={1.5} y1={5.5} x2={2.5} y2={3.5} tone="pick" uid={u} size={6} hit /> },
+  alt: { pieces: [['wR', 4, 5]], at: [4, 3], draw: (u) => <Arrow x1={4.5} y1={5.5} x2={4.5} y2={3.5} tone="alt" weight={0.7} uid={u} size={6} hit /> },
+  bad: { pieces: [['bP', 3, 0]], at: [3, 2], draw: (u) => <Arrow x1={3.5} y1={0.5} x2={3.5} y2={2.5} tone="bad" uid={u} size={6} hit /> },
+  line: { pieces: [['bB', 0, 0]], at: [2, 2], draw: (u) => <Arrow x1={0.5} y1={0.5} x2={2.5} y2={2.5} tone="line" uid={u} size={6} hit /> },
+  judge: { pieces: [['wQ', 0, 4]], at: [0, 2], draw: (u) => <Arrow x1={0.5} y1={4.5} x2={0.5} y2={2.5} tone="judge" uid={u} size={6} hit /> },
+  better: { pieces: [['wP', 5, 5]], at: [5, 3], draw: (u) => <Arrow x1={5.5} y1={5.5} x2={5.5} y2={3.5} tone="better" uid={u} size={6} hit /> },
+  heat: { pieces: [], at: [2, 1], draw: (u) => <circle cx={2.5} cy={1.5} r={0.75} fill={`url(#${u}-hp)`} /> },
+  'heat-bad': { pieces: [], at: [4, 1], draw: (u) => <circle cx={4.5} cy={1.5} r={0.75} fill={`url(#${u}-hn)`} /> },
+  node: { pieces: [['wR', 4, 5]], at: [4, 5], draw: () => <Ring x={4.5} y={5.5} w={0.9} /> },
+  attack: { pieces: [['wR', 4, 5], ['bN', 4, 1]], at: [4, 1], draw: () => <Edge x1={4.5} y1={5.5} x2={4.5} y2={1.5} attack hit /> },
+  defend: { pieces: [['wN', 1, 5], ['wR', 4, 5]], at: [4, 5], draw: () => <Edge x1={1.5} y1={5.5} x2={4.5} y2={5.5} attack={false} hit /> },
+};
+
+/** Hover (or tap) a mark on the sample board to read what it means. */
+export function LegendBoard({ items, pieces = 'cburnett', testid }: { items: LegendT; pieces?: string; testid?: string }) {
+  const uid = 'lb' + useId().replace(/:/g, '');
+  const [active, setActive] = useState<number | null>(null);
+  const placed = new Map<string, P>();
+  for (const it of items) for (const p of DEMO[it.mark].pieces) placed.set(`${p[1]},${p[2]}`, p);
+  // Heat sits under the pieces, everything else above.
+  const under = items.map((it, i) => [it, i] as const).filter(([it]) => it.mark.startsWith('heat'));
+  const over = items.map((it, i) => [it, i] as const).filter(([it]) => !it.mark.startsWith('heat'));
+  const mark = ([it, i]: readonly [LegendT[number], number]) => (
+    <g
+      key={i}
+      className={`lm ${active !== null && active !== i ? 'dim' : ''}`}
+      role="button"
+      tabIndex={0}
+      aria-label={it.text}
+      onPointerEnter={() => setActive(i)}
+      onFocus={() => setActive(i)}
+      onClick={() => setActive(i)}
+      data-testid={`lm-${it.mark}`}
+    >
+      {DEMO[it.mark].draw(`${uid}${i}`)}
+    </g>
+  );
   return (
-    <ul className="legend" data-testid={testid}>
-      {items.map((x) => (
-        <li key={x.mark + x.text}>
-          <Swatch mark={x.mark} />
-          <span>{x.text}</span>
-        </li>
-      ))}
-    </ul>
+    <figure className="legend-board" data-testid={testid} onPointerLeave={() => setActive(null)}>
+      <svg viewBox="0 0 6 6" role="img" aria-label="Legend: sample board with each overlay mark">
+        <defs>
+          <GlowDef uid={uid} />
+          {items.map((_, i) => <GlowDef key={i} uid={`${uid}${i}`} />)}
+          {(['hp', 'hn'] as const).map((k) =>
+            items.map((_, i) => (
+              <radialGradient key={k + i} id={`${uid}${i}-${k}`}>
+                <stop offset="0" stopColor={k === 'hp' ? TONE.pick : TONE.bad} stopOpacity="0.95" />
+                <stop offset="1" stopColor={k === 'hp' ? TONE.pick : TONE.bad} stopOpacity="0" />
+              </radialGradient>
+            )),
+          )}
+        </defs>
+        {Array.from({ length: 36 }, (_, k) => (
+          <rect key={k} x={k % 6} y={Math.floor(k / 6)} width={1} height={1} style={{ fill: ((k % 6) + Math.floor(k / 6)) % 2 ? 'var(--sq-dark)' : 'var(--sq-light)' }} />
+        ))}
+        <g style={{ mixBlendMode: 'multiply' }}>{under.map(mark)}</g>
+        {[...placed.values()].map(([code, x, y]) => (
+          <image key={`${x},${y}`} href={`/pieces/${pieces}/${code}.svg`} x={x + 0.05} y={y + 0.05} width={0.9} height={0.9} />
+        ))}
+        {over.map(mark)}
+      </svg>
+      <figcaption>
+        {active !== null ? (
+          <><i className="dot" style={{ background: dotColor(items[active].mark) }} />{items[active].text}</>
+        ) : (
+          <span className="faint">Hover or tap a mark to see what it means</span>
+        )}
+      </figcaption>
+    </figure>
   );
 }
+
+const dotColor = (m: LegendMark) => (m === 'heat' || m === 'node' ? TONE.pick : m === 'heat-bad' || m === 'attack' ? TONE.bad : m === 'defend' ? DEFEND : TONE[m]);
