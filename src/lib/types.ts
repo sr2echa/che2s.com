@@ -12,7 +12,7 @@ export type Settings = Record<string, number | string | boolean>;
 /** Arrow roles. Bots use pick/alt/bad/line; the app adds judge (engine best) and better (rating hint). */
 export type Tone = 'pick' | 'alt' | 'bad' | 'line' | 'judge' | 'better';
 /** One row of a HUD legend. */
-export type LegendMark = Tone | 'heat' | 'heat-bad' | 'node' | 'attack' | 'defend';
+export type LegendMark = Tone | 'heat' | 'heat-bad' | 'node' | 'attack' | 'defend' | 'field-white' | 'field-black';
 export type Legend = { mark: LegendMark; text: string }[];
 
 /** What a bot "sees". Every field is optional; the overlay draws whatever is present. */
@@ -21,6 +21,8 @@ export interface Hud {
   arrows?: { from: string; to: string; weight?: number; tone?: Tone; label?: string }[];
   /** Square heat, v in [-1, 1] (positive = good for the bot). */
   heat?: Record<string, number>;
+  /** Square ownership by side, v in [-1, 1] (positive = White, negative = Black). */
+  field?: Record<string, number>;
   /** Graph nodes (on squares) and edges. */
   graph?: { nodes: { sq: string; w: number }[]; edges: { from: string; to: string; kind: 'attack' | 'defend' }[] };
   caption?: string;

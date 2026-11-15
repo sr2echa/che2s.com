@@ -10,10 +10,21 @@ const xy = (sq: string, o: Orient): [number, number] => {
 // One colour per role, so arrows from different sources never read alike.
 export const TONE: Record<Tone, string> = { pick: '#d4f35f', alt: '#f4f2ec', bad: '#ff6b57', line: '#f5b94c', judge: '#7cc8ff', better: '#f4f2ec' };
 const DEFEND = '#5fd3c5';
+/** Territory colours: White in the accent lime, Black in orange (both warm, so they sit in the palette). */
+export const FIELD = { white: '#d4f35f', black: '#ff9a52' };
 const WIDTH: Record<Tone, number> = { pick: 0.15, alt: 0.085, bad: 0.12, line: 0.085, judge: 0.11, better: 0.075 };
 
 /** Soft thermal blobs under the pieces. */
 export function Heat({ hud, orientation }: { hud?: Hud | null; orientation: Orient }) {
+  if (hud?.field)
+    return (
+      <svg className="layer field" viewBox="0 0 8 8" data-testid="hud-field">
+        {Object.entries(hud.field).map(([sq, v]) => {
+          const [x, y] = xy(sq, orientation);
+          return <rect key={sq} x={x - 0.5} y={y - 0.5} width={1} height={1} fill={v > 0 ? FIELD.white : FIELD.black} opacity={Math.min(0.75, Math.abs(v) * 0.75)} />;
+        })}
+      </svg>
+    );
   if (!hud?.heat) return null;
   return (
     <svg className="layer heat" viewBox="0 0 8 8" data-testid="hud-heat">
@@ -193,7 +204,13 @@ const DEMO: Record<LegendMark, { pieces: P[]; draw(uid: string): ReactNode; at: 
   node: { pieces: [['wR', 4, 5]], at: [4, 5], draw: () => <Ring x={4.5} y={5.5} w={0.9} /> },
   attack: { pieces: [['wR', 4, 5], ['bN', 4, 1]], at: [4, 1], draw: () => <Edge x1={4.5} y1={5.5} x2={4.5} y2={1.5} attack hit /> },
   defend: { pieces: [['wN', 1, 5], ['wR', 4, 5]], at: [4, 5], draw: () => <Edge x1={1.5} y1={5.5} x2={4.5} y2={5.5} attack={false} hit /> },
+  'field-white': { pieces: [['wP', 3, 4]], at: [3, 3], draw: () => <FieldPatch squares={[[2, 3], [3, 3], [4, 3], [2, 4], [4, 4], [3, 2]]} color={FIELD.white} /> },
+  'field-black': { pieces: [['bP', 3, 1]], at: [3, 1], draw: () => <FieldPatch squares={[[2, 0], [3, 0], [4, 0], [2, 1], [4, 1], [5, 1]]} color={FIELD.black} /> },
 };
+
+const FieldPatch = ({ squares, color }: { squares: [number, number][]; color: string }) => (
+  <g>{squares.map(([x, y]) => <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill={color} opacity={0.6} style={{ pointerEvents: 'all' }} />)}</g>
+);
 
 /** Hover (or tap) a mark on the sample board to read what it means. */
 export function LegendBoard({ items, pieces = 'cburnett', testid }: { items: LegendT; pieces?: string; testid?: string }) {
@@ -202,8 +219,8 @@ export function LegendBoard({ items, pieces = 'cburnett', testid }: { items: Leg
   const placed = new Map<string, P>();
   for (const it of items) for (const p of DEMO[it.mark].pieces) placed.set(`${p[1]},${p[2]}`, p);
   // Heat sits under the pieces, everything else above.
-  const under = items.map((it, i) => [it, i] as const).filter(([it]) => it.mark.startsWith('heat'));
-  const over = items.map((it, i) => [it, i] as const).filter(([it]) => !it.mark.startsWith('heat'));
+  const under = items.map((it, i) => [it, i] as const).filter(([it]) => it.mark.startsWith('heat') || it.mark.startsWith('field'));
+  const over = items.map((it, i) => [it, i] as const).filter(([it]) => !it.mark.startsWith('heat') && !it.mark.startsWith('field'));
   const mark = ([it, i]: readonly [LegendT[number], number]) => (
     <g
       key={i}
@@ -254,4 +271,5 @@ export function LegendBoard({ items, pieces = 'cburnett', testid }: { items: Leg
   );
 }
 
-const dotColor = (m: LegendMark) => (m === 'heat' || m === 'node' ? TONE.pick : m === 'heat-bad' || m === 'attack' ? TONE.bad : m === 'defend' ? DEFEND : TONE[m]);
+const dotColor = (m: LegendMark): string =>
+  m === 'field-white' ? FIELD.white : m === 'field-black' ? FIELD.black : m === 'heat' || m === 'node' ? TONE.pick : m === 'heat-bad' || m === 'attack' ? TONE.bad : m === 'defend' ? DEFEND : TONE[m];

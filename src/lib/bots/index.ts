@@ -8,6 +8,7 @@ import { worstfish } from './worstfish';
 import { shannon } from './shannon';
 import { monte } from './monte';
 import { dice } from './dice';
+import { meridian } from './meridian';
 
-export const BOTS: BotDef[] = [stockfish, maia, trapsky, crystal, worstfish, shannon, monte, dice];
+export const BOTS: BotDef[] = [stockfish, maia, trapsky, crystal, worstfish, shannon, monte, meridian, dice];
 export const botById = (id: string) => BOTS.find((b) => b.id === id);

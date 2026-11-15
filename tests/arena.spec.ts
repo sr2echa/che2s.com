@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-const BOTS = ['stockfish', 'trapsky', 'crystal', 'worstfish', 'shannon', 'monte', 'dice'];
+const BOTS = ['stockfish', 'trapsky', 'crystal', 'worstfish', 'shannon', 'monte', 'meridian', 'dice'];
 
 async function clickSq(page: Page, sq: string, orientation: 'white' | 'black' = 'white') {
   const b = (await page.getByTestId('board').boundingBox())!;
@@ -152,7 +152,7 @@ test('seat sheet: switch bot and tune settings', async ({ page }) => {
 
 test('bots page lists the roster and links into the arena', async ({ page }) => {
   await page.goto('/bots');
-  await expect(page.locator('article.bot')).toHaveCount(8);
+  await expect(page.locator('article.bot')).toHaveCount(9);
   await page.getByRole('link', { name: 'Play Boris Trapsky' }).click();
   await expect(page.getByTestId('seat-black')).toContainText('Boris Trapsky');
 });
@@ -238,7 +238,7 @@ test('HUD legends: a sample board that explains each mark on hover', async ({ pa
   await page.mouse.click(5, 5);
   await expect(page.getByTestId('legend-pop-black')).toHaveCount(0);
   await page.goto('/bots');
-  await expect(page.locator('article.bot .legend-board')).toHaveCount(8);
+  await expect(page.locator('article.bot .legend-board')).toHaveCount(9);
 });
 
 test('bots wait while a settings sheet is open', async ({ page }) => {
@@ -249,4 +249,13 @@ test('bots wait while a settings sheet is open', async ({ page }) => {
   await expect(page.getByTestId('thinking-white')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(moveButtons(page)).toHaveCount(1, { timeout: 15_000 });
+});
+
+test('Meridian shows a live territory map', async ({ page }) => {
+  await page.goto('/?white=human&black=meridian');
+  await page.getByTestId('hud-black').click();
+  await expect(page.getByTestId('hud-field')).toBeVisible();
+  await expect(page.getByTestId('eye')).toContainText(/White \d+, Black \d+/);
+  await page.getByTestId('legend').getByTestId('lm-field-black').hover();
+  await expect(page.getByTestId('legend').locator('figcaption')).toContainText("Black's territory");
 });

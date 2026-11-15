@@ -4,6 +4,7 @@ import { shannon } from '../src/lib/bots/shannon';
 import { monte } from '../src/lib/bots/monte';
 import { crystal } from '../src/lib/bots/crystal';
 import { dice } from '../src/lib/bots/dice';
+import { meridian } from '../src/lib/bots/meridian';
 import { fromFen, legalMoves, INITIAL_FEN } from '../src/lib/chess';
 import { defaults, type ThinkCtx } from '../src/lib/types';
 
@@ -13,7 +14,7 @@ const MATE_IN_ONE = [
   ['6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'd1d8'],
 ];
 
-for (const bot of [shannon, monte, crystal, dice]) {
+for (const bot of [shannon, monte, crystal, meridian, dice]) {
   test(`${bot.id} returns legal moves`, async () => {
     for (const fen of [INITIAL_FEN, 'r3k2r/pppq1ppp/2n1bn2/3pp3/3PP3/2N1BN2/PPPQ1PPP/R3K2R w KQkq - 0 1', '8/P7/8/8/8/8/6k1/4K3 w - - 0 1', '4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1']) {
       const { move } = await bot.think({ fen, moves: [], startFen: fen, settings: defaults(bot.settings) }, ctx);
@@ -22,7 +23,7 @@ for (const bot of [shannon, monte, crystal, dice]) {
   });
 }
 
-for (const bot of [shannon, crystal]) {
+for (const bot of [shannon, crystal, meridian]) {
   test(`${bot.id} finds mate in one`, async () => {
     for (const [fen, mate] of MATE_IN_ONE) {
       const { move } = await bot.think({ fen, moves: [], startFen: fen, settings: defaults(bot.settings) }, ctx);
