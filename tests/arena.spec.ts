@@ -235,3 +235,13 @@ test('HUD legends: Bot view, seat popover and the Bots page', async ({ page }) =
   await page.goto('/bots');
   await expect(page.locator('article.bot .legend')).toHaveCount(8);
 });
+
+test('bots wait while a settings sheet is open', async ({ page }) => {
+  await page.goto('/?white=human&black=human');
+  await page.getByLabel('Settings for white').click();
+  await page.getByTestId('pick-dice').click();
+  await page.waitForTimeout(1500);
+  await expect(page.getByTestId('thinking-white')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(moveButtons(page)).toHaveCount(1, { timeout: 15_000 });
+});

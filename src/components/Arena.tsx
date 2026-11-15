@@ -106,7 +106,8 @@ export default function Arena() {
   const toMove = seats[side];
   const seatKey = toMove.id + JSON.stringify(settingsOf(toMove));
   useEffect(() => {
-    if (game.outcome || toMove.id === HUMAN || paused || error) return;
+    // Bots hold while a settings sheet is open, so switching or tuning a bot never triggers a move mid-edit.
+    if (game.outcome || toMove.id === HUMAN || paused || error || sheet || gameSheet) return;
     const bot = botById(toMove.id)!;
     const at = moves.length;
     const fen = game.fens[at];
@@ -140,7 +141,7 @@ export default function Arena() {
       setThinking(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moves, startFen, seatKey, side, paused, !!game.outcome, error, retry, bothBots ? pace : 0]);
+  }, [moves, startFen, seatKey, side, paused, !!game.outcome, error, retry, bothBots ? pace : 0, !!sheet, gameSheet]);
 
   // ---- human moves -----------------------------------------------------------
   const commit = useCallback(
