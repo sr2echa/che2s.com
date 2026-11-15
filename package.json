@@ -1,5 +1,11 @@
 {
   "name": "che2s",
+  "description": "A chess arena for engines and humans: play Stockfish, Maia and stranger bots, watch them fight, see what they see.",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sr2echa/che2s.com"
+  },
   "type": "module",
   "private": true,
   "scripts": {
@@ -30,5 +36,8 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
