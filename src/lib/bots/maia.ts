@@ -83,6 +83,8 @@ export const maia: BotDef = {
   vision: 'Move probabilities',
   hud: 'Probability that a human at this rating plays each move',
   legend: [{ mark: 'pick', text: 'The move it played' }, { mark: 'alt', text: 'Other moves humans choose here, with how often' }, { mark: 'heat', text: 'Brighter squares attract more human moves' }],
+  // Model 44 MB + runtime 15 MB, fetched only when Maia first plays, then cached.
+  download: { mb: 60, key: 'maia3_simplified.onnx' },
   settings: [
     { key: 'elo', label: 'Rating', hint: 'The player Maia imitates', type: 'range', min: 600, max: 2600, step: 50, default: 1500 },
     { key: 'oppo', label: 'Opponent rating', hint: 'Who Maia believes it is facing', type: 'range', min: 600, max: 2600, step: 50, default: 1500 },

@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { isCached } from '../lib/assets';
 import { XIcon, CheckIcon } from '@phosphor-icons/react';
 import { BOTS, botById } from '../lib/bots';
 import { defaults, type Settings } from '../lib/types';
@@ -26,6 +27,11 @@ export default function SeatSheet({ side, seat, onChange, onClose }: { side: 'wh
   }, [onClose]);
 
   const roster = [{ id: HUMAN, name: 'Human', approach: 'You, at this keyboard' }, ...BOTS];
+  // Bots with a one-time download show its size until it is cached.
+  const [cached, setCached] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    for (const b of BOTS) if (b.download) isCached(b.download.key).then((c) => setCached((x) => ({ ...x, [b.id]: c })));
+  }, []);
   // ponytail: roster is a flat list; group by family if it grows past ~16 bots.
   return (
     <>
@@ -43,7 +49,12 @@ export default function SeatSheet({ side, seat, onChange, onClose }: { side: 'wh
             <div className="roster">
               {roster.map((b) => (
                 <button key={b.id} aria-pressed={seat.id === b.id} onClick={() => onChange({ ...seat, id: b.id })} data-testid={`pick-${b.id}`} title={b.approach}>
-                  {b.name}
+                  <span>
+                    {b.name}
+                    {'download' in b && b.download && (
+                      <small className="dl" data-testid={`dl-${b.id}`}>{cached[b.id] ? 'Downloaded' : `${b.download.mb} MB`}</small>
+                    )}
+                  </span>
                   {seat.id === b.id && <CheckIcon size={14} weight="bold" />}
                 </button>
               ))}
@@ -56,6 +67,9 @@ export default function SeatSheet({ side, seat, onChange, onClose }: { side: 'wh
                 <p className="lead">{bot.name}</p>
                 <div className="approach">{bot.approach}</div>
                 <p className="about">{bot.description}</p>
+                {bot.download && !cached[bot.id] && (
+                  <p className="about faint" data-testid="dl-note">First game downloads {bot.download.mb} MB once; after that it loads from your browser.</p>
+                )}
               </div>
               <div>
                 <h3 className="section-title">Settings</h3>

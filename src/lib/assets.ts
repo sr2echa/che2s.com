@@ -9,7 +9,10 @@ export const REPO_CDN = 'https://cdn.jsdelivr.net/gh/sr2echa/che2s.com@main/mode
 /** Dev server only: models/ served from disk (see the dev-models plugin in astro.config.mjs), always tried last. */
 export const DEV_LOCAL = import.meta.env.DEV && typeof location !== 'undefined' ? `${location.origin}/dev-models` : null; // undefined on the server (Astro SSR)
 
-const CACHE = 'che2s-assets-v1';
+const CACHE = 'che2s-assets-v2';
+/** Absolute cache keys: a relative key would resolve differently in the page and in workers. */
+const cacheKey = (key: string) => `https://che2s.local/assets/${key}`;
+if (typeof caches !== 'undefined') caches.delete('che2s-assets-v1').catch(() => {}); // v1 used relative keys
 
 /**
  * Returns the asset's bytes. `key` names it in Cache Storage (include a version); `urls` are tried in order.
@@ -17,7 +20,7 @@ const CACHE = 'che2s-assets-v1';
  */
 export async function loadAsset(key: string, urls: (string | null | undefined)[], onProgress?: (pct: number) => void, expectedBytes?: number): Promise<Blob> {
   const cache = typeof caches !== 'undefined' ? await caches.open(CACHE).catch(() => null) : null;
-  const hit = await cache?.match(key);
+  const hit = await cache?.match(cacheKey(key));
   if (hit) return hit.blob();
   let lastError: unknown = new Error(`No source for ${key}`);
   for (const url of urls.filter(Boolean) as string[]) {
@@ -26,7 +29,7 @@ export async function loadAsset(key: string, urls: (string | null | undefined)[]
       // A blocked or missing file often comes back as an HTML page; treat it as a failure.
       if (!res.ok || res.headers.get('content-type')?.includes('text/html')) throw new Error(`${res.status} from ${url}`);
       const blob = onProgress && res.body ? await withProgress(res, onProgress, expectedBytes) : await res.blob();
-      await cache?.put(key, new Response(blob)).catch(() => {}); // storage may be full or unavailable; still usable
+      await cache?.put(cacheKey(key), new Response(blob)).catch(() => {}); // storage may be full or unavailable; still usable
       return blob;
     } catch (e) {
       lastError = e;
@@ -50,6 +53,10 @@ async function withProgress(res: Response, onProgress: (pct: number) => void, ex
   }
   return new Blob(chunks);
 }
+
+/** Whether an asset is already in the browser's cache (so using it costs no download). */
+export const isCached = async (key: string) =>
+  typeof caches !== 'undefined' && !!(await caches.open(CACHE).then((c) => c.match(cacheKey(key))).catch(() => undefined));
 
 /** An object URL for bytes with a given MIME type (workers and runtimes load these like files). */
 export const blobUrl = (blob: Blob, type: string) => URL.createObjectURL(new Blob([blob], { type }));

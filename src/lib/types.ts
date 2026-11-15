@@ -57,6 +57,8 @@ export interface BotDef {
   hud: string;
   /** Explains every mark the HUD can draw. */
   legend: Legend;
+  /** One-time download before first use (shown in the player picker); `key` is its Cache Storage name. */
+  download?: { mb: number; key: string };
   settings: Setting[];
   think(input: ThinkInput, ctx: ThinkCtx): Promise<{ move: string; hud?: Hud }>;
   /** Optional cheap, synchronous HUD for any position (drawn live instead of the last think HUD). */

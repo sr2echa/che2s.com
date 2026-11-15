@@ -56,10 +56,18 @@ for (const id of BOTS) {
 
 test('Maia downloads its network and plays a human move', async ({ page }) => {
   test.setTimeout(300_000);
+  await page.goto('/?white=human&black=human');
+  await page.getByLabel('Settings for black').click();
+  await expect(page.getByTestId('dl-maia')).toHaveText('60 MB');
+  await page.keyboard.press('Escape');
   await page.goto('/?white=maia&black=human');
   await expect(page.getByTestId('thinking-white')).toBeVisible();
   await expect(moveButtons(page)).toHaveCount(1, { timeout: 280_000 });
   await expect(page.getByTestId('status')).not.toHaveClass(/err/);
+  // Before the first game the picker showed 60 MB; now the network is cached.
+  await page.getByLabel('Settings for black').click();
+  await expect(page.getByTestId('dl-maia')).toHaveText('Downloaded');
+  await page.keyboard.press('Escape');
   // HUD shows its policy as percentages.
   await page.getByTestId('hud-white').click();
   await expect(page.getByTestId('eye')).toContainText('%');
