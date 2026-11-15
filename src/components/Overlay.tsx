@@ -98,7 +98,7 @@ export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; ori
         const tone = (a.tone ?? 'alt') as Tone;
         const [x1, y1] = xy(a.from, orientation), [x2, y2] = xy(a.to, orientation);
         const w = WIDTH[tone] * (tone === 'alt' ? 0.75 + 0.5 * (a.weight ?? 0.5) : 1);
-        const head = Math.max(0.3, w * 2.6);
+        const head = Math.max(0.26, w * 2.3); // drawn with a thick round-join stroke, so the visible head is softer and a little larger
         const { d, tip, ux, uy } = arrowPath(x1, y1, x2, y2, 0.12 + head * 0.7);
         const hx = tip[0] + ux * head * 0.75, hy = tip[1] + uy * head * 0.75;
         const px = -uy, py = ux;
@@ -117,8 +117,9 @@ export function Marks({ hud, orientation, badge, hint }: { hud?: Hud | null; ori
               d={`M${hx} ${hy} L${tip[0] - ux * head * 0.25 + px * head * 0.55} ${tip[1] - uy * head * 0.25 + py * head * 0.55} L${tip[0] + ux * head * 0.05} ${tip[1] + uy * head * 0.05} L${tip[0] - ux * head * 0.25 - px * head * 0.55} ${tip[1] - uy * head * 0.25 - py * head * 0.55} Z`}
               fill={c}
               stroke={c}
-              strokeWidth={0.03}
+              strokeWidth={Math.max(0.05, w * 0.7)}
               strokeLinejoin="round"
+              strokeLinecap="round"
             />
             {a.label && (
               <g transform={`translate(${Math.min(7.9 - a.label.length * 0.1, Math.max(0.1, hx + px * 0.18 - a.label.length * 0.05))} ${Math.min(7.72, Math.max(0.1, hy + py * 0.18 - 0.36))})`} className="tag">
