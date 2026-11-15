@@ -129,7 +129,7 @@ test('judge announces mate in one', async ({ page }) => {
   await page.goto('/?white=human&black=human');
   await load(page, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1');
   await expect(page.getByTestId('judge-eval')).toHaveText('M1');
-  await expect(page.getByTestId('judge')).toContainText('White mates in 1');
+  await expect(page.getByTestId('judge')).toContainText('White has mate in 1');
 });
 
 test('seat sheet: switch bot and tune settings', async ({ page }) => {
@@ -167,4 +167,14 @@ test('Stockfish full strength disables the Elo slider', async ({ page }) => {
   await expect(page.getByLabel('Elo')).toBeEnabled();
   await page.getByRole('switch', { name: 'Full strength' }).click();
   await expect(page.getByLabel('Elo')).toBeDisabled();
+});
+
+test('evaluation panel shows White / Draw / Black odds from the engine', async ({ page }) => {
+  await page.goto('/?white=human&black=human');
+  await expect(page.getByTestId('wdl')).toContainText(/White \d+%\s*Draw \d+%\s*Black \d+%/);
+  await expect(page.getByTestId('judge')).toContainText(/depth \d+/);
+  await expect(page.getByTestId('judge')).toContainText(/equal|better|winning/);
+  // Draw share should be the largest at the start position.
+  const [w, d] = (await page.getByTestId('wdl').locator('.labels span').allTextContents()).map((t) => +t.replace(/\D/g, ''));
+  expect(d).toBeGreaterThan(w);
 });

@@ -81,8 +81,20 @@ export function winPct(score: Score): number {
 
 export type Score = { cp?: number; mate?: number };
 
-export const fmtScore = (s: Score) =>
-  s.mate !== undefined ? (s.mate === 0 ? '#' : `${s.mate > 0 ? '' : '-'}M${Math.abs(s.mate)}`) : `${(s.cp ?? 0) > 0 ? '+' : ''}${((s.cp ?? 0) / 100).toFixed(1)}`;
+export const fmtScore = (s: Score, digits = 1) =>
+  s.mate !== undefined ? (s.mate === 0 ? '#' : `${s.mate > 0 ? '' : '-'}M${Math.abs(s.mate)}`) : `${(s.cp ?? 0) > 0 ? '+' : ''}${((s.cp ?? 0) / 100).toFixed(digits)}`;
+
+/** Plain-language read of a White-POV score. */
+export function describeScore(s: Score): string {
+  if (s.mate === 0) return (s.cp ?? 0) === 0 ? 'Drawn.' : `Checkmate. ${(s.cp ?? 0) > 0 ? 'White' : 'Black'} wins.`;
+  if (s.mate) return `${s.mate > 0 ? 'White' : 'Black'} has mate in ${Math.abs(s.mate)}.`;
+  const cp = s.cp ?? 0, side = cp > 0 ? 'White' : 'Black', a = Math.abs(cp);
+  if (a < 25) return 'The position is equal.';
+  if (a < 75) return `${side} is slightly better.`;
+  if (a < 175) return `${side} is better.`;
+  if (a < 400) return `${side} is clearly better.`;
+  return `${side} is winning.`;
+}
 
 /** Collapse a score to a sortable number (mate dominates). */
 export const scoreNum = (s: Score) => (s.mate !== undefined ? Math.sign(s.mate || -1) * (100000 - Math.abs(s.mate) * 100) : s.cp ?? 0);

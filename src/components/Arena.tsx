@@ -15,7 +15,7 @@ import ReviewPanel from './ReviewPanel';
 import { botById } from '../lib/bots';
 import { think } from '../lib/brain';
 import { useJudge } from '../lib/useJudge';
-import { INITIAL_FEN, fromFen, toFen, play, stdUci, parseSquare, outcomeOf, winPct, fmtScore, isValidFen, pvSan, type Score } from '../lib/chess';
+import { INITIAL_FEN, fromFen, toFen, play, stdUci, parseSquare, outcomeOf, winPct, fmtScore, isValidFen, pvSan, describeScore, type Score } from '../lib/chess';
 import { reviewGame, CLS, type Review } from '../lib/review';
 import type { Hud } from '../lib/types';
 import { pieceVars } from '../lib/pieces';
@@ -407,15 +407,18 @@ export default function Arena() {
       <aside className="panel">
         {showJudge && (
           <div className="judge reveal" data-testid="judge">
-            <div className={`big ${mate ? 'mate' : ''}`} data-testid="judge-eval">{fmtScore(judge.score)}</div>
-            <div className="odds">
-              <span className="mono">{mate ? `${mate > 0 ? 'White' : 'Black'} mates in ${Math.abs(mate)}` : `White ${Math.round(wp)}%`}</span>
-              <span className="split"><i style={{ transform: `scaleX(${wp / 100})` }} /></span>
-              <span className="mono">{mate ? '' : `${100 - Math.round(wp)}% Black`}</span>
+            <div className="judge-head">
+              <span>Evaluation</span>
+              <span className="mono">{judge.depth ? `depth ${judge.depth}${judge.nodes ? `  ${kilo(judge.nodes)} nodes` : ''}` : 'final'}</span>
             </div>
-            <div className="line mono" title={judge.pv.join(' ')}>
-              {judge.pv.length ? <><b>d{judge.depth}</b> {pvSan(shownFen, judge.pv)}</> : judge.depth === 0 ? 'Game over' : ''}
-            </div>
+            <div className={`big mono ${mate ? 'mate' : ''}`} data-testid="judge-eval">{fmtScore(judge.score, 2)}</div>
+            <div className="says">{describeScore(shown.outcome && !shown.outcome.winner ? { mate: 0, cp: 0 } : judge.score)}</div>
+            <Wdl wdl={judge.wdl ?? wdlFromWp(wp)} />
+            {judge.pv.length > 0 && (
+              <div className="line mono" title={judge.pv.join(' ')}>
+                <b>Best</b> {pvSan(shownFen, judge.pv)}
+              </div>
+            )}
           </div>
         )}
 
@@ -511,6 +514,29 @@ export default function Arena() {
       </aside>
 
       {sheet && <SeatSheet side={sheet} seat={seats[sheet]} onClose={() => setSheet(null)} onChange={(s) => setSeats((x) => ({ ...x, [sheet]: s }))} />}
+    </div>
+  );
+}
+
+const kilo = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
+/** Fallback when the engine sent no WDL: split win% with no draw share. */
+const wdlFromWp = (wp: number): [number, number, number] => [wp * 10, 0, 1000 - wp * 10];
+
+function Wdl({ wdl }: { wdl: [number, number, number] }) {
+  const [w, d, l] = wdl.map((x) => x / 10);
+  const pct = (x: number) => `${Math.round(x)}%`;
+  return (
+    <div className="wdl" data-testid="wdl">
+      <div className="bars">
+        <i className="w" style={{ flexGrow: Math.max(w, 1.5) }} />
+        <i className="d" style={{ flexGrow: Math.max(d, 1.5) }} />
+        <i className="l" style={{ flexGrow: Math.max(l, 1.5) }} />
+      </div>
+      <div className="mono labels">
+        <span>White {pct(w)}</span>
+        <span>Draw {pct(d)}</span>
+        <span>Black {pct(l)}</span>
+      </div>
     </div>
   );
 }

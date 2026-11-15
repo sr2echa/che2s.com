@@ -1,7 +1,8 @@
 // UCI wrapper around the Stockfish 19 lite WASM worker. Searches are serialized.
 import type { Score } from './chess';
 
-export type Line = Score & { multipv: number; depth: number; pv: string[]; nps?: number };
+/** wdl: win/draw/loss per mille from the side to move (UCI_ShowWDL). */
+export type Line = Score & { multipv: number; depth: number; pv: string[]; nps?: number; nodes?: number; wdl?: [number, number, number] };
 export type Go = { depth?: number; movetime?: number; nodes?: number };
 
 export const ENGINE_URL = '/engine/stockfish-19-lite-single.js';
@@ -88,7 +89,12 @@ function parseInfo(l: string): Line | null {
     depth: +at('depth'),
     pv: t.slice(t.indexOf('pv') + 1),
     nps: t.includes('nps') ? +at('nps') : undefined,
+    nodes: t.includes('nodes') ? +at('nodes') : undefined,
   };
+  if (t.includes('wdl')) {
+    const i = t.indexOf('wdl');
+    line.wdl = [+t[i + 1], +t[i + 2], +t[i + 3]];
+  }
   const kind = at('score');
   const val = +t[t.indexOf('score') + 2];
   if (kind === 'mate') line.mate = val;
