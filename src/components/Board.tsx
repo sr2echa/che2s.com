@@ -34,7 +34,13 @@ export default function Board({ fen, orientation, turn, lastMove, check, movable
       movable: { free: false, showDests: true, events: { after: (o, d) => moveRef.current(o, d) } },
       premovable: { enabled: false },
     });
-    return () => api.current?.destroy();
+    // Chessground caches square geometry; re-measure whenever the board's box changes size.
+    const ro = new ResizeObserver(() => api.current?.redrawAll());
+    ro.observe(el.current!);
+    return () => {
+      ro.disconnect();
+      api.current?.destroy();
+    };
   }, []);
 
   useEffect(() => {

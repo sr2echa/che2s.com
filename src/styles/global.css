@@ -1,7 +1,6 @@
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
 @import 'chessground/assets/chessground.base.css';
-@import 'chessground/assets/chessground.cburnett.css';
 
 /* ponytail: dark-only stage on purpose; add a light token set here if a light theme is ever wanted. */
 @property --wp { syntax: '<number>'; inherits: true; initial-value: 50; }
@@ -101,7 +100,8 @@ input[type='range']:active::-webkit-slider-thumb { transform: scale(1.25); }
 .stage, .panel { position: relative; z-index: 1; }
 
 .stage { display: grid; grid-template-columns: 4px 52px var(--board); grid-template-rows: 56px var(--board) 26px 56px; column-gap: 0; grid-template-areas: '. . top' 'bar ranks board' '. . files' '. . bottom'; animation: stage-in 1s var(--out) both; }
-@keyframes stage-in { from { opacity: 0; transform: translateY(14px) scale(0.985); } }
+/* Opacity only: chessground measures the board on mount, so no transforms here. */
+@keyframes stage-in { from { opacity: 0; } }
 
 /* Seats */
 .seat { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -146,6 +146,22 @@ cg-board square.oc.move-dest { background: radial-gradient(transparent 0%, trans
 cg-board square.check { background: radial-gradient(circle, rgb(255 107 87 / 0.95) 0%, rgb(255 107 87 / 0.55) 32%, transparent 70%); }
 cg-board piece.dragging { filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.35)); }
 cg-board piece { transition: filter 0.2s var(--ease); }
+
+
+/* Piece art comes from CSS variables set by pieceVars() on any [data-pieces] ancestor. */
+[data-pieces] piece.king.white { background-image: var(--wK); }
+[data-pieces] piece.queen.white { background-image: var(--wQ); }
+[data-pieces] piece.rook.white { background-image: var(--wR); }
+[data-pieces] piece.bishop.white { background-image: var(--wB); }
+[data-pieces] piece.knight.white { background-image: var(--wN); }
+[data-pieces] piece.pawn.white { background-image: var(--wP); }
+[data-pieces] piece.king.black { background-image: var(--bK); }
+[data-pieces] piece.queen.black { background-image: var(--bQ); }
+[data-pieces] piece.rook.black { background-image: var(--bR); }
+[data-pieces] piece.bishop.black { background-image: var(--bB); }
+[data-pieces] piece.knight.black { background-image: var(--bN); }
+[data-pieces] piece.pawn.black { background-image: var(--bP); }
+[data-pieces] piece { background-size: cover; background-repeat: no-repeat; }
 
 /* SVG overlays */
 .draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 0.7s var(--out) forwards; }

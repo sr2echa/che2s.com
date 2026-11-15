@@ -4,6 +4,7 @@ import { Heat, Marks } from './Overlay';
 import { think } from '../lib/brain';
 import { botById } from '../lib/bots';
 import { defaults, type Hud } from '../lib/types';
+import { pieceVars } from '../lib/pieces';
 import { INITIAL_FEN, fromFen, toFen, play, outcomeOf } from '../lib/chess';
 
 // A live exhibition for the Bots page: two in-browser bots playing forever, with their overlays on.
@@ -52,7 +53,7 @@ export default function MiniMatch() {
 
   const pos = fromFen(fen);
   return (
-    <figure className="mini">
+    <figure className="mini" data-pieces style={pieceVars('papercut')}>
       <Board fen={fen} orientation="white" turn={pos.turn} lastMove={last} check={pos.isCheck()} dests={noDests} onMove={() => {}} under={<Heat hud={hud} orientation="white" />} over={<Marks hud={hud ? { arrows: hud.arrows } : null} orientation="white" />} />
       <figcaption>
         <span>Shannon <em>vs</em> Monte</span>

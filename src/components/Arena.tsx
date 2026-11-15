@@ -18,6 +18,7 @@ import { useJudge } from '../lib/useJudge';
 import { INITIAL_FEN, fromFen, toFen, play, stdUci, parseSquare, outcomeOf, winPct, fmtScore, isValidFen, pvSan, type Score } from '../lib/chess';
 import { reviewGame, CLS, type Review } from '../lib/review';
 import type { Hud } from '../lib/types';
+import { pieceVars } from '../lib/pieces';
 
 type Side = 'white' | 'black';
 // chessground's piece CSS targets a custom <piece> element.
@@ -64,6 +65,7 @@ export default function Arena() {
   const [reviewDepth, setReviewDepth] = useState(14);
   const [paste, setPaste] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const pieceSet = 'papercut';
 
   const game = useMemo(() => {
     const fens = [startFen];
@@ -337,7 +339,7 @@ export default function Arena() {
   const showJudge = judgeOn && !!judge;
 
   return (
-    <div className="arena" style={{ ['--wp' as string]: showJudge ? wp : 50 }}>
+    <div className="arena" data-pieces style={{ ['--wp' as string]: showJudge ? wp : 50, ...pieceVars(pieceSet) }}>
       <div className="aura" aria-hidden />
       <section className="stage">
         {seatRow(top, 'top')}
