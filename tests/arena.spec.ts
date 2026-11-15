@@ -52,6 +52,7 @@ test('Maia downloads its network and plays a human move', async ({ page }) => {
   await expect(page.getByTestId('eye')).toContainText('%');
   await expect(page.getByTestId('hud-heat')).toBeVisible();
   // As White, Maia's top choice must be a normal human opening move.
+  await page.getByTestId('tab-moves').click();
   await expect(moveButtons(page).first()).toHaveText(/^(e4|d4|c4|Nf3|g3|b3|e3|Nc3)\W*$/);
 
   // As Black (mirrored encoding), it should answer 1.e4 like a human would.
@@ -67,9 +68,10 @@ test('HUD: Stockfish lines, Crystal graph, Monte heatmap', async ({ page }) => {
   await page.getByTestId('hud-black').click();
   await clickSq(page, 'e2');
   await clickSq(page, 'e4');
-  await expect(moveButtons(page)).toHaveCount(2, { timeout: 15_000 });
+  await expect(page.getByTestId('eye')).toContainText('Depth', { timeout: 15_000 }); // HUD on opens Bot view
   await expect(page.getByTestId('arrow-pick').first()).toBeVisible();
-  await expect(page.getByTestId('eye')).toContainText('Depth');
+  await page.getByTestId('tab-moves').click();
+  await expect(moveButtons(page)).toHaveCount(2);
 
   await page.goto('/?white=human&black=crystal');
   await page.getByTestId('hud-black').click();
@@ -78,9 +80,8 @@ test('HUD: Stockfish lines, Crystal graph, Monte heatmap', async ({ page }) => {
 
   await page.goto('/?white=monte&black=human');
   await page.getByTestId('hud-white').click();
-  await expect(moveButtons(page)).toHaveCount(1, { timeout: 30_000 });
+  await expect(page.getByTestId('eye')).toContainText('Simulations', { timeout: 30_000 });
   await expect(page.getByTestId('hud-heat')).toBeVisible();
-  await expect(page.getByTestId('eye')).toContainText('Simulations');
 });
 
 test('bot vs bot runs, pace and pause work', async ({ page }) => {

@@ -59,7 +59,7 @@ export default function Arena() {
   const [prefs, setPrefs] = usePrefs();
   const [gameSheet, setGameSheet] = useState(false);
   const { judge: judgeOn, depth: judgeDepth, hint, pace } = prefs;
-  const [tab, setTab] = useState<'moves' | 'review'>('moves');
+  const [tab, setTab] = useState<'moves' | 'review' | 'vision'>('moves');
   const [review, setReview] = useState<Review | null>(null);
   const [reviewing, setReviewing] = useState<number | null>(null);
   const [reviewDepth, setReviewDepth] = useState(14);
@@ -318,7 +318,7 @@ export default function Arena() {
           </span>
         )}
         {bot && (
-          <button className="icon-btn" aria-pressed={st.hud} aria-label={`${st.hud ? 'Hide' : 'Show'} what ${bot.name} sees`} data-tip={`${st.hud ? 'Hide' : 'Show'} ${bot.name}'s view: ${bot.hud.toLowerCase()}`} onClick={() => setSeats((x) => ({ ...x, [s]: { ...st, hud: !st.hud } }))} data-testid={`hud-${s}`}>
+          <button className="icon-btn" aria-pressed={st.hud} aria-label={`${st.hud ? 'Hide' : 'Show'} what ${bot.name} sees`} data-tip={`${st.hud ? 'Hide' : 'Show'} ${bot.name}'s view: ${bot.hud.toLowerCase()}`} onClick={() => (setSeats((x) => ({ ...x, [s]: { ...st, hud: !st.hud } })), !st.hud && setTab('vision'))} data-testid={`hud-${s}`}>
             {st.hud ? <EyeIcon size={18} /> : <EyeSlashIcon size={18} />}
           </button>
         )}
@@ -332,7 +332,7 @@ export default function Arena() {
   const status = (() => {
     if (error) return error;
     if (ply < live) return `Viewing move ${Math.ceil(ply / 2) || 'start'}. Press End to return.`;
-    if (game.outcome) return game.outcome.winner ? `${game.outcome.reason}. ${game.outcome.winner === 'white' ? 'White' : 'Black'} wins.` : `Draw. ${game.outcome.reason}.`;
+    if (game.outcome) return judgeOn ? 'Game over.' : game.outcome.winner ? `${game.outcome.reason}. ${game.outcome.winner === 'white' ? 'White' : 'Black'} wins.` : `Draw. ${game.outcome.reason}.`;
     if (paused && hasBot) return 'Paused.';
     const who = seats[game.turn];
     return who.id === HUMAN ? `${game.turn === 'white' ? 'White' : 'Black'} to move.` : `${nameOf(who)} to move.`;
@@ -352,13 +352,16 @@ export default function Arena() {
   const files = orientation === 'white' ? 'abcdefgh' : 'hgfedcba';
   const ranks = orientation === 'white' ? '87654321' : '12345678';
   const showJudge = judgeOn && !!judge;
+  const anyHud = (['white', 'black'] as const).some((x) => seats[x].hud && botById(seats[x].id));
+  const deckTabs = (anyHud ? ['moves', 'review', 'vision'] : ['moves', 'review']) as ('moves' | 'review' | 'vision')[];
+  const deck = deckTabs.includes(tab) ? tab : 'moves';
 
   return (
     <div className="arena" data-pieces style={{ ['--wp' as string]: showJudge ? wp : 50, ...pieceVars(pieceSet) }}>
       <div className="aura" aria-hidden />
       <section className="stage">
         {seatRow(top, 'top')}
-        {judgeOn && (
+        {judgeOn && prefs.evalBar && (
           <div className={`evalbar ${orientation === 'black' ? 'flip' : ''}`} aria-label={`White win probability ${Math.round(wp)}%`} data-testid="evalbar" data-wp={Math.round(wp)}>
             <div className="fill" style={{ transform: `scaleY(${wp / 100})` }} />
             <div className="bead" style={{ transform: `translateY(${(orientation === 'white' ? 100 - wp : wp) / 100 * 100}cqh)` }}>
@@ -398,6 +401,14 @@ export default function Arena() {
               <div className="verdict" data-testid="verdict">
                 <div className="score">{result}</div>
                 <div className="why">{game.outcome.reason}</div>
+                <div className="matchup" data-testid="matchup">
+                  {(['white', 'black'] as const).map((c, i) => (
+                    <span key={c} className={game.outcome?.winner === c ? 'won' : ''}>
+                      {i === 1 && <i>vs</i>}
+                      <b>{nameOf(seats[c])}<small>{summary(seats[c])}</small></b>
+                    </span>
+                  ))}
+                </div>
                 <button className="cta" onClick={runReview} disabled={reviewing !== null}>
                   Review game
                   <span className="cta-icon"><ArrowUpRightIcon size={14} weight="bold" /></span>
@@ -412,95 +423,106 @@ export default function Arena() {
         {seatRow(other(top), 'bottom')}
       </section>
 
-      <aside className="panel">
-        {showJudge && (
-          <div className="judge reveal" data-testid="judge">
+      <aside className="side">
+        {judgeOn && (
+          <section className="judge" data-testid="judge">
             <div className="judge-head">
               <span>Evaluation</span>
-              <span className="mono">{judge.depth ? `depth ${judge.depth}${judge.nodes ? `  ${kilo(judge.nodes)} nodes` : ''}` : 'final'}</span>
+              <span className="mono">{!judge ? 'thinking' : judge.depth ? `depth ${judge.depth}${judge.nodes ? `  ${kilo(judge.nodes)} nodes` : ''}` : 'final'}</span>
             </div>
-            <div className={`big mono ${mate ? 'mate' : ''}`} data-testid="judge-eval">{fmtScore(judge.score, 2)}</div>
-            <div className="says">{describeScore(shown.outcome && !shown.outcome.winner ? { mate: 0, cp: 0 } : judge.score)}</div>
-            <Wdl wdl={judge.wdl ?? wdlFromWp(wp)} />
-            {judge.pv.length > 0 && (
-              <div className="line mono" title={judge.pv.join(' ')}>
-                <b>Best</b> {pvSan(shownFen, judge.pv)}
+            <div className={`big mono ${mate ? 'mate' : ''}`} data-testid="judge-eval">{judge ? fmtScore(judge.score, 2) : '0.00'}</div>
+            <div className="says">{judge ? describeScore(shown.outcome && !shown.outcome.winner ? { mate: 0, cp: 0 } : judge.score) : 'Evaluating.'}</div>
+            {prefs.wdl && <Wdl wdl={judge?.wdl ?? wdlFromWp(wp)} />}
+            {prefs.bestLine && (
+              <div className="line mono" title={judge?.pv.join(' ')}>
+                {judge && judge.pv.length > 0 && <><b>Best</b> {pvSan(shownFen, judge.pv)}</>}
               </div>
             )}
+          </section>
+        )}
+
+        {prefs.live && prefs.ratingCard && (
+          <div className="rating-slot" data-testid="rating-slot">
+            {rev && deck !== 'review' && <Insight key={`${ply}-${rev.uci}`} r={rev} />}
           </div>
         )}
 
-        {rev && tab === 'moves' && <Insight key={`${ply}-${rev.uci}`} r={rev} />}
-
-        <div className="reveal" style={{ ['--i' as string]: 1 }}>
-          <div className="status-row">
-            <div className={`status ${error ? 'err' : ''}`} data-testid="status">
-              {status}
-              {error && (
-                <button className="link" onClick={() => (setError(''), setRetry((r) => r + 1))}>Retry</button>
-              )}
-            </div>
-            <button className="icon-btn" aria-label="Game settings" data-tip="Judge, pace, pieces, load a position" onClick={() => setGameSheet(true)} style={{ marginLeft: 'auto' }}>
-              <GearSixIcon size={18} />
-            </button>
+        <div className="toolbar">
+          <div className={`status ${error ? 'err' : ''}`} data-testid="status">
+            {status}
+            {error && <button className="link" onClick={() => (setError(''), setRetry((r) => r + 1))}>Retry</button>}
+          </div>
+          <button className="icon-btn" aria-label="Game settings" data-tip="Judge, pieces, board, pace, load a position" onClick={() => setGameSheet(true)}>
+            <GearSixIcon size={18} />
+          </button>
+          {live > 0 && (
             <button className="cta small" onClick={() => reset()} data-testid="new-game" data-tip="Start over with the same players">
               New game
               <span className="cta-icon"><PlusIcon size={12} weight="bold" /></span>
             </button>
-          </div>
-          <div className="nav" aria-label="Move navigation">
-            <button className="icon-btn" aria-label="First move" data-tip="Start of game (Home)" onClick={() => go(0)} disabled={ply === 0}><SkipBackIcon size={17} weight="fill" /></button>
-            <button className="icon-btn" aria-label="Previous move" data-tip="Previous move (←)" onClick={() => go(ply - 1)} disabled={ply === 0}><CaretLeftIcon size={17} weight="bold" /></button>
-            <span className="counter mono" data-testid="counter">{ply === 0 ? 'Start' : `Move ${Math.ceil(ply / 2)}`}<em>{ply} / {live}</em></span>
-            <button className="icon-btn" aria-label="Next move" data-tip="Next move (→)" onClick={() => go(ply + 1)} disabled={ply === live}><CaretRightIcon size={17} weight="bold" /></button>
-            <button className="icon-btn" aria-label="Last move" data-tip="Latest position (End)" onClick={() => go(live)} disabled={ply === live}><SkipForwardIcon size={17} weight="fill" /></button>
-          </div>
-          <div className="actions">
-            {hasBot && (
-              <button className="chip-btn" aria-label={paused ? 'Resume' : 'Pause'} data-tip={paused ? 'Let the bots continue (Space)' : 'Stop the bots after this move (Space)'} onClick={() => setPaused(!paused)} disabled={!!game.outcome} data-testid="pause">
-                {paused ? <PlayIcon size={15} weight="fill" /> : <PauseIcon size={15} weight="fill" />}
-                {paused ? 'Resume' : 'Pause'}
-              </button>
-            )}
-            <button className="chip-btn" aria-label="Take back" data-tip="Undo your last move" onClick={undo} disabled={!live}><ArrowUUpLeftIcon size={15} weight="bold" />Undo</button>
-            <button className="chip-btn" aria-label="Flip board" data-tip="Turn the board around (F)" onClick={() => setOrientation(other)}><ArrowsClockwiseIcon size={15} weight="bold" />Flip</button>
-            <button className="chip-btn" aria-label="Swap sides" data-tip="Swap who plays White and Black" onClick={swap}><UserSwitchIcon size={15} weight="bold" />Swap</button>
-            <button className="chip-btn" aria-label="Copy PGN" data-tip="Copy the game as PGN" onClick={copyPgn} disabled={!live}>{copied ? <CheckIcon size={15} weight="bold" /> : <CopySimpleIcon size={15} weight="bold" />}{copied ? 'Copied' : 'PGN'}</button>
-          </div>
-        </div>
-
-        <div className="reveal sheetless" style={{ ['--i' as string]: 2 }}>
-          <div className="tabs two" role="tablist" style={{ ['--t' as string]: tab === 'moves' ? 0 : 1 }}>
-            <i className="tab-ink" />
-            <button role="tab" aria-selected={tab === 'moves'} onClick={() => setTab('moves')}>Moves</button>
-            <button role="tab" aria-selected={tab === 'review'} onClick={() => setTab('review')} data-testid="tab-review">Review</button>
-          </div>
-          {tab === 'moves' ? (
-            <div className="moves" ref={movesRef} data-testid="moves">
-              {!rows.length && <div className="empty">No moves yet. {seats[game.turn].id === HUMAN ? 'Make the first one.' : ''}</div>}
-              {rows.map((r) => (
-                <MoveRow key={r.n} r={r} sans={game.sans} ply={ply} go={go} ratings={ratings} />
-              ))}
-            </div>
-          ) : (
-            <ReviewPanel review={review} progress={reviewing} depth={reviewDepth} setDepth={setReviewDepth} run={runReview} canRun={live > 0} ply={ply} go={go} />
           )}
         </div>
 
-        {hud && (hud.caption || hud.stats?.length) && (
-          <div className="eye reveal" data-testid="eye" style={{ ['--i' as string]: 3 }}>
-            <span className="label"><EyeIcon size={13} /> {nameOf(seats[hudBy!])} sees</span>
-            {hud.caption && <div className="caption">{hud.caption}</div>}
-            {!!hud.stats?.length && (
-              <dl className="stats">
-                {hud.stats.slice(0, 3).map(([k, v]) => (
-                  <div key={k}><dt>{k}</dt><dd title={v}>{v}</dd></div>
+        <div className="nav" aria-label="Move navigation">
+          <button className="icon-btn" aria-label="First move" data-tip="Start of game (Home)" onClick={() => go(0)} disabled={ply === 0}><SkipBackIcon size={17} weight="fill" /></button>
+          <button className="icon-btn" aria-label="Previous move" data-tip="Previous move (←)" onClick={() => go(ply - 1)} disabled={ply === 0}><CaretLeftIcon size={17} weight="bold" /></button>
+          <span className="counter mono" data-testid="counter">{ply === 0 ? 'Start' : `Move ${Math.ceil(ply / 2)}`}<em>{ply} / {live}</em></span>
+          <button className="icon-btn" aria-label="Next move" data-tip="Next move (→)" onClick={() => go(ply + 1)} disabled={ply === live}><CaretRightIcon size={17} weight="bold" /></button>
+          <button className="icon-btn" aria-label="Last move" data-tip="Latest position (End)" onClick={() => go(live)} disabled={ply === live}><SkipForwardIcon size={17} weight="fill" /></button>
+        </div>
+        <div className="actions">
+          {hasBot && (
+            <button className="chip-btn" aria-label={paused ? 'Resume' : 'Pause'} data-tip={paused ? 'Let the bots continue (Space)' : 'Stop the bots after this move (Space)'} onClick={() => setPaused(!paused)} disabled={!!game.outcome} data-testid="pause">
+              {paused ? <PlayIcon size={15} weight="fill" /> : <PauseIcon size={15} weight="fill" />}
+              {paused ? 'Resume' : 'Pause'}
+            </button>
+          )}
+          <button className="chip-btn" aria-label="Take back" data-tip="Undo your last move" onClick={undo} disabled={!live}><ArrowUUpLeftIcon size={15} weight="bold" />Undo</button>
+          <button className="chip-btn" aria-label="Flip board" data-tip="Turn the board around (F)" onClick={() => setOrientation(other)}><ArrowsClockwiseIcon size={15} weight="bold" />Flip</button>
+          <button className="chip-btn" aria-label="Swap sides" data-tip="Swap who plays White and Black" onClick={swap}><UserSwitchIcon size={15} weight="bold" />Swap</button>
+          <button className="chip-btn" aria-label="Copy PGN" data-tip="Copy the game as PGN" onClick={copyPgn} disabled={!live}>{copied ? <CheckIcon size={15} weight="bold" /> : <CopySimpleIcon size={15} weight="bold" />}{copied ? 'Copied' : 'PGN'}</button>
+        </div>
+
+        <section className="deck">
+          <div className={`tabs n${deckTabs.length}`} role="tablist" style={{ ['--t' as string]: Math.max(0, deckTabs.indexOf(deck)) }}>
+            <i className="tab-ink" />
+            {deckTabs.map((t) => (
+              <button key={t} role="tab" aria-selected={deck === t} onClick={() => setTab(t)} data-testid={`tab-${t}`}>
+                {t === 'moves' ? 'Moves' : t === 'review' ? 'Review' : 'Bot view'}
+              </button>
+            ))}
+          </div>
+          <div className="deck-body">
+            {deck === 'moves' && (
+              <div className="moves" ref={movesRef} data-testid="moves">
+                {!rows.length && <div className="empty">No moves yet. {seats[game.turn].id === HUMAN ? 'Make the first one.' : ''}</div>}
+                {rows.map((r) => (
+                  <MoveRow key={r.n} r={r} sans={game.sans} ply={ply} go={go} ratings={ratings} />
                 ))}
-              </dl>
+              </div>
+            )}
+            {deck === 'review' && <ReviewPanel review={review} progress={reviewing} depth={reviewDepth} setDepth={setReviewDepth} run={runReview} canRun={live > 0} ply={ply} go={go} />}
+            {deck === 'vision' && (
+              <div className="eye" data-testid="eye">
+                {hud ? (
+                  <>
+                    <span className="label"><EyeIcon size={13} /> {nameOf(seats[hudBy!])} sees</span>
+                    {hud.caption && <div className="caption">{hud.caption}</div>}
+                    {!!hud.stats?.length && (
+                      <dl className="stats">
+                        {hud.stats.slice(0, 3).map(([k, v]) => (
+                          <div key={k}><dt>{k}</dt><dd title={v}>{v}</dd></div>
+                        ))}
+                      </dl>
+                    )}
+                  </>
+                ) : (
+                  <div className="empty">Its view appears after it thinks.</div>
+                )}
+              </div>
             )}
           </div>
-        )}
-
+        </section>
       </aside>
 
       {gameSheet && <GameSheet prefs={prefs} set={setPrefs} onLoad={load} onClose={() => setGameSheet(false)} />}

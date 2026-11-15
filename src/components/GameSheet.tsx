@@ -10,8 +10,13 @@ export interface Prefs {
   live: boolean;
   pace: number;
   pieces: string;
+  board: string;
+  evalBar: boolean;
+  wdl: boolean;
+  bestLine: boolean;
+  ratingCard: boolean;
 }
-export const DEFAULT_PREFS: Prefs = { judge: true, depth: 18, hint: false, live: true, pace: 500, pieces: 'papercut' };
+export const DEFAULT_PREFS: Prefs = { judge: true, depth: 18, hint: false, live: true, pace: 500, pieces: 'papercut', board: 'steel', evalBar: true, wdl: true, bestLine: true, ratingCard: true };
 
 /** Prefs survive reloads; unknown or corrupt storage falls back to defaults. */
 export function usePrefs() {
