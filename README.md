@@ -1,4 +1,4 @@
-<samp>
+<img src="public/favicon.svg" width="64" height="64" alt="che2s logo">
 
 # che2s
 
@@ -316,6 +316,3 @@ vocabulary are AGPL-3.0, from the University of Toronto's CSSLab.
 
 Piece sets, fonts and other third-party components keep their own licenses, listed in
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
-
-
-</samp>
