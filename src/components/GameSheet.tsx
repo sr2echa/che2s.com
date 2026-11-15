@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { XIcon, ArrowUpRightIcon, CheckIcon } from '@phosphor-icons/react';
 import { Range, Switch } from './Controls';
-import { PIECE_SETS, BOARD_THEMES, pieceVars } from '../lib/pieces';
+import { PIECE_SETS, BOARD_THEMES } from '../lib/pieces';
 
 export interface Prefs {
   judge: boolean;
@@ -16,6 +16,9 @@ export interface Prefs {
   bestLine: boolean;
   ratingCard: boolean;
 }
+/** A few pieces on the board-theme previews (4x4, index = row * 4 + col). */
+const PREVIEW_PIECES: Record<number, string> = { 1: 'bN', 2: 'bK', 9: 'wB', 14: 'wQ' };
+
 export const DEFAULT_PREFS: Prefs = { judge: true, depth: 18, hint: false, live: true, pace: 500, pieces: 'papercut', board: 'steel', evalBar: true, wdl: true, bestLine: true, ratingCard: true };
 
 /** Prefs survive reloads; unknown or corrupt storage falls back to defaults. */
@@ -75,19 +78,20 @@ export default function GameSheet({ prefs, set, onLoad, onClose }: Props) {
               ))}
             </div>
             <h3 className="section-title" style={{ marginTop: 22 }}>Board</h3>
-            <div className="options" role="radiogroup" aria-label="Board colours">
+            <div className="cards" role="radiogroup" aria-label="Board colours">
               {BOARD_THEMES.map((t) => (
                 <button key={t.id} role="radio" aria-checked={prefs.board === t.id} onClick={() => set({ board: t.id })} data-testid={`board-${t.id}`}>
-                  <span className="preview mini-board" style={{ ['--l' as string]: t.light, ['--d' as string]: t.dark, ...pieceVars(prefs.pieces) }}>
-                    {Array.from({ length: 8 }, (_, i) => (
-                      <i key={i} className={(i + (i >> 2)) % 2 ? 'dk' : 'lt'}>
-                        {i === 1 && <img src={`/pieces/${prefs.pieces}/bN.svg`} alt="" />}
-                        {i === 6 && <img src={`/pieces/${prefs.pieces}/wK.svg`} alt="" />}
+                  <span className="preview mini-board" style={{ ['--l' as string]: t.light, ['--d' as string]: t.dark }}>
+                    {Array.from({ length: 16 }, (_, i) => (
+                      <i key={i} className={((i & 3) + (i >> 2)) % 2 ? 'dk' : 'lt'}>
+                        {PREVIEW_PIECES[i] && <img src={`/pieces/${prefs.pieces}/${PREVIEW_PIECES[i]}.svg`} alt="" />}
                       </i>
                     ))}
                   </span>
-                  <span className="meta"><b>{t.name}</b></span>
-                  {prefs.board === t.id && <CheckIcon size={16} weight="bold" className="tick" />}
+                  <span className="card-name">
+                    {t.name}
+                    {prefs.board === t.id && <CheckIcon size={13} weight="bold" className="tick" />}
+                  </span>
                 </button>
               ))}
             </div>

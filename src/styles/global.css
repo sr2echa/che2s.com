@@ -426,7 +426,14 @@ textarea.paste::placeholder { color: var(--ink-3); }
 .preview.strip { grid-template-columns: repeat(6, 30px); grid-auto-rows: 30px; }
 .preview.strip .lt { background: var(--sq-light); }
 .preview.strip .dk { background: var(--sq-dark); }
-.preview.mini-board { grid-template-columns: repeat(4, 22px); grid-auto-rows: 22px; }
+.preview.mini-board { grid-template-columns: repeat(4, 1fr); aspect-ratio: 1; width: 100%; }
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cards button { display: flex; flex-direction: column; gap: 8px; padding: 8px 8px 10px; border-radius: 14px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease), transform 0.2s var(--ease); }
+.cards button:hover { background: var(--line); }
+.cards button:active { transform: scale(0.97); }
+.cards button[aria-checked='true'] { box-shadow: inset 0 0 0 1.5px var(--accent); background: rgb(212 243 95 / 0.05); }
+.card-name { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 500; padding: 0 2px; }
+.card-name .tick { color: var(--accent); }
 .preview.mini-board .lt { background: var(--l); }
 .preview.mini-board .dk { background: var(--d); }
 
