@@ -53,7 +53,7 @@ export default function MiniMatch() {
 
   const pos = fromFen(fen);
   return (
-    <figure className="mini" data-pieces style={pieceVars('papercut')}>
+    <figure className="mini" data-pieces style={pieceVars('cburnett')}>
       <Board fen={fen} orientation="white" turn={pos.turn} lastMove={last} check={pos.isCheck()} dests={noDests} onMove={() => {}} under={<Heat hud={hud} orientation="white" />} over={<Marks hud={hud ? { arrows: hud.arrows } : null} orientation="white" />} />
       <figcaption>
         <span>Shannon <em>vs</em> Monte</span>

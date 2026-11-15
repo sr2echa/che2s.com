@@ -1,10 +1,10 @@
 // Piece sets live in /public/pieces/<id>/{w,b}{K,Q,R,B,N,P}.svg. Credits in public/pieces/CREDITS.md.
 export const PIECE_SETS = [
-  { id: 'papercut', name: 'Papercut' },
-  { id: 'spatial', name: 'Spatial' },
-  { id: 'kiwen-suwi', name: 'Kiwen' },
-  { id: 'chessnut', name: 'Chessnut' },
-  { id: 'cburnett', name: 'Classic' },
+  { id: 'cburnett', name: 'Classic', by: 'Colin M.L. Burnett' },
+  { id: 'papercut', name: 'Papercut', by: 'Nikolay Anzarov' },
+  { id: 'spatial', name: 'Spatial', by: 'Maurizio Monge' },
+  { id: 'kiwen-suwi', name: 'Kiwen', by: 'neverRare' },
+  { id: 'chessnut', name: 'Chessnut', by: 'Alexis Luengas' },
 ] as const;
 
 const CODES = ['wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'];

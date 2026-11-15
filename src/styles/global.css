@@ -46,10 +46,10 @@ button:disabled { cursor: default; opacity: 0.3; }
 .brand i::before, .brand i::after { content: ''; }
 .brand i::before { background: var(--accent); grid-area: 1 / 1; }
 .brand i::after { background: var(--ink); grid-area: 2 / 2; }
-.top nav { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-.top nav a { padding: 6px 16px; border-radius: 999px; font-size: 13px; color: var(--ink-2); transition: color 0.3s var(--ease), background 0.3s var(--ease); }
-.top nav a:hover { color: var(--ink); }
-.top nav a[aria-current='page'] { color: var(--ink); background: var(--line-2); }
+.top nav { display: flex; gap: 28px; margin-left: 48px; }
+.top nav a { font-size: 14px; color: var(--ink-3); transition: color 0.3s var(--ease); }
+.top nav a:hover { color: var(--ink-2); }
+.top nav a[aria-current='page'] { color: var(--ink); }
 
 /* ---------- Atoms ---------- */
 .icon-btn { width: 34px; height: 34px; display: inline-grid; place-items: center; border-radius: 999px; color: var(--ink-2); transition: color 0.25s var(--ease), background 0.25s var(--ease), transform 0.15s var(--ease); }
@@ -308,7 +308,6 @@ textarea.paste::placeholder { color: var(--ink-3); }
   .arena { grid-template-columns: 1fr; --board: min(calc(100vw - 128px), 680px); justify-items: center; padding-left: 28px; }
   .stage { grid-template-columns: 4px 40px var(--board); }
   .panel { margin-top: 8px; width: 100%; max-width: 720px; }
-  .top nav { position: static; transform: none; margin-left: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -316,7 +315,7 @@ textarea.paste::placeholder { color: var(--ink-3); }
   .draw { stroke-dashoffset: 0; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .verdict, .promo, .scrim, .sheet, .top nav { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgb(14 14 16 / 0.97); }
+  .verdict, .promo, .scrim, .sheet { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgb(14 14 16 / 0.97); }
 }
 .sheet h2 .chip { width: 9px; height: 9px; border-radius: 50%; }
 .sheet h2 .chip.white { background: #f5f4ef; }
