@@ -19,18 +19,25 @@ export interface Prefs {
 /** A few pieces on the board-theme previews (4x4, index = row * 4 + col). */
 const PREVIEW_PIECES: Record<number, string> = { 1: 'bN', 2: 'bK', 9: 'wB', 14: 'wQ' };
 
-export const DEFAULT_PREFS: Prefs = { judge: true, depth: 18, hint: false, live: true, pace: 500, pieces: 'papercut', board: 'steel', evalBar: true, wdl: true, bestLine: true, ratingCard: true };
+/** v2: v1 saved every pref, freezing old defaults (e.g. Papercut pieces) into storage. */
+const PREFS_KEY = 'che2s.prefs.v2';
+
+export const DEFAULT_PREFS: Prefs = { judge: true, depth: 18, hint: false, live: true, pace: 500, pieces: 'cburnett', board: 'steel', evalBar: true, wdl: true, bestLine: true, ratingCard: true };
 
 /** Prefs survive reloads; unknown or corrupt storage falls back to defaults. */
 export function usePrefs() {
   const [prefs, setPrefs] = useState<Prefs>(() => {
     try {
-      return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem('che2s.prefs') ?? '{}') };
+      return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') };
     } catch {
       return DEFAULT_PREFS;
     }
   });
-  useEffect(() => localStorage.setItem('che2s.prefs', JSON.stringify(prefs)), [prefs]);
+  // Store only what differs from the defaults, so changing a default later reaches everyone who never touched it.
+  useEffect(() => {
+    const diff = Object.fromEntries(Object.entries(prefs).filter(([k, v]) => DEFAULT_PREFS[k as keyof Prefs] !== v));
+    localStorage.setItem(PREFS_KEY, JSON.stringify(diff));
+  }, [prefs]);
   return [prefs, (p: Partial<Prefs>) => setPrefs((x) => ({ ...x, ...p }))] as const;
 }
 

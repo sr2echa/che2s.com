@@ -15,10 +15,12 @@ interface Props {
   onMove(from: Key, to: Key): void;
   under?: ReactNode;
   over?: ReactNode;
+  /** Soften the position behind an overlay (game over). */
+  dimmed?: boolean;
   children?: ReactNode;
 }
 
-export default function Board({ fen, orientation, turn, lastMove, check, movable, dests, onMove, under, over, children }: Props) {
+export default function Board({ fen, orientation, turn, lastMove, check, movable, dests, onMove, under, over, dimmed, children }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const api = useRef<Api | null>(null);
   const moveRef = useRef(onMove);
@@ -55,7 +57,7 @@ export default function Board({ fen, orientation, turn, lastMove, check, movable
   }, [fen, orientation, turn, check, lastMove, movable, dests]);
 
   return (
-    <div className="board" data-testid="board">
+    <div className={`board ${dimmed ? 'dimmed' : ''}`} data-testid="board">
       <div className="layer under">{under}</div>
       <div ref={el} className="cg-wrap" />
       <div className="layer top">{over}</div>

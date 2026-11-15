@@ -414,6 +414,7 @@ export default function Arena() {
             onMove={onMove}
             under={<Heat hud={hud} orientation={orientation} />}
             over={<Marks hud={marks} orientation={orientation} badge={badge} hint={hintMove} />}
+            dimmed={!!game.outcome && ply === live}
           >
             {promo && (
               <div className="promo cg-wrap" onClick={() => (setPromo(null), setSync((x) => x + 1))}>
