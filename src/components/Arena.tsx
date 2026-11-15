@@ -314,17 +314,15 @@ export default function Arena() {
           <span className={`chip ${s}`} />
           <span className="name">
             {nameOf(st)}
-            {/* Signals float off the name so they never push the row around. */}
-            {inCheck ? (
-              <span className="bubble check" data-testid={`check-${s}`}>Check</span>
-            ) : busy ? (
-              <span className="bubble typing" data-testid={`thinking-${s}`} title={thinking?.text ?? 'Thinking'}>
-                <i /><i /><i />
-                {thinking?.text && <em>{thinking.text.replace('Downloading network · ', '')}</em>}
+            {/* Thinking floats beside the name's left edge (above the top seat, below the bottom one), so nothing reflows. */}
+            {busy && (
+              <span className="thinking" data-testid={`thinking-${s}`}>
+                {thinking?.text ? thinking.text.replace('Downloading network · ', 'Downloading ') : 'Thinking'}
               </span>
-            ) : null}
+            )}
           </span>
           <span className="sub mono">{summary(st)}</span>
+          {inCheck && <span className="check-pill" data-testid={`check-${s}`}>Check</span>}
         </button>
         <span className="caps" data-testid={`caps-${s}`} aria-label={`${s} has captured ${caps.taken[s].length} pieces`}>
           {caps.taken[s].map((r, i) => (

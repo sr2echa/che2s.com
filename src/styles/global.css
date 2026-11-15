@@ -398,17 +398,14 @@ textarea.paste::placeholder { color: var(--ink-3); }
 .verdict .matchup small { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-weight: 400; }
 .verdict .matchup .won b { color: var(--accent); }
 
-/* Seat signals: typing / check bubbles float off the name (above for the top seat, below for the bottom) */
+/* Seat signals. Thinking: a shimmering label at the name's left edge (above the top seat, below the bottom). Check: a small pill. */
 .seat .name { position: relative; }
-.bubble { position: absolute; left: calc(100% + 2px); bottom: calc(100% - 4px); z-index: 5; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: 13px 13px 13px 4px; background: rgb(38 38 41 / 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 0 0 1px var(--line-2); font: 500 11px/1 var(--mono); letter-spacing: 0; color: var(--ink); white-space: nowrap; transform-origin: bottom left; animation: bubble-in 0.45s var(--out) both; }
-.seat.at-bottom .bubble { bottom: auto; top: calc(100% - 4px); border-radius: 4px 13px 13px 13px; transform-origin: top left; }
-.bubble.typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-2); animation: typing 1.2s var(--ease) infinite; }
-.bubble.typing i:nth-child(2) { animation-delay: 0.15s; }
-.bubble.typing i:nth-child(3) { animation-delay: 0.3s; }
-.bubble.typing em { font-style: normal; margin-left: 4px; color: var(--ink-2); }
-.bubble.check { color: #ffd6cf; background: rgb(70 24 20 / 0.92); box-shadow: inset 0 0 0 1px rgb(255 107 87 / 0.55), 0 0 18px rgb(255 107 87 / 0.25); }
-@keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.45; } 30% { transform: translateY(-3px); opacity: 1; } }
-@keyframes bubble-in { from { opacity: 0; transform: scale(0.6); } }
+.thinking { position: absolute; left: 0; bottom: calc(100% + 1px); font: 500 11px/1 var(--mono); letter-spacing: 0.02em; white-space: nowrap; color: transparent; background: linear-gradient(90deg, var(--ink-3) 0%, var(--ink-3) 35%, var(--ink) 50%, var(--ink-3) 65%, var(--ink-3) 100%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; animation: shimmer 1.8s linear infinite, fade 0.3s var(--ease); }
+.thinking::after { content: '...'; display: inline-block; width: 1.6em; text-align: left; overflow: hidden; vertical-align: bottom; animation: dots 1.2s steps(4, end) infinite; color: var(--ink-3); -webkit-text-fill-color: var(--ink-3); }
+.seat.at-bottom .thinking { bottom: auto; top: calc(100% + 3px); }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+@keyframes dots { from { width: 0; } to { width: 1.6em; } }
+.check-pill { align-self: center; height: 18px; padding: 0 8px; display: inline-flex; align-items: center; border-radius: 999px; font: 600 10.5px/1 var(--font); letter-spacing: 0.02em; color: #ff9b8c; background: rgb(255 107 87 / 0.14); box-shadow: inset 0 0 0 1px rgb(255 107 87 / 0.38); animation: pop 0.35s var(--out); }
 .icon-slot { width: 34px; flex: none; }
 /* Black captured pieces get a light rim so they read on the dark background */
 .caps piece.black { filter: drop-shadow(0 0 0.6px rgb(242 240 234 / 0.95)) drop-shadow(0 0 0.6px rgb(242 240 234 / 0.6)); opacity: 1; }
