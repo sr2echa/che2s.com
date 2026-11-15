@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Board from './Board';
-import { Heat, Marks } from './Overlay';
+import { Marks } from './Overlay';
 import { think } from '../lib/brain';
 import { botById } from '../lib/bots';
 import { defaults, type Hud } from '../lib/types';
@@ -54,7 +54,7 @@ export default function MiniMatch() {
   const pos = fromFen(fen);
   return (
     <figure className="mini" data-pieces style={pieceVars('cburnett')}>
-      <Board fen={fen} orientation="white" turn={pos.turn} lastMove={last} check={pos.isCheck()} dests={noDests} onMove={() => {}} under={<Heat hud={hud} orientation="white" />} over={<Marks hud={hud ? { arrows: hud.arrows } : null} orientation="white" />} />
+      <Board fen={fen} orientation="white" turn={pos.turn} lastMove={last} check={pos.isCheck()} dests={noDests} onMove={() => {}} over={<Marks hud={hud ? { arrows: hud.arrows?.filter((a) => a.tone === 'pick' || a.tone === 'line') } : null} orientation="white" />} />
       <figcaption>
         <span>Shannon <em>vs</em> Monte</span>
         <span className="mono faint">Live, in your browser</span>
