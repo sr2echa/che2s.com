@@ -4,8 +4,8 @@ import { parsePgn, startingPosition } from 'chessops/pgn';
 import { parseSan } from 'chessops/san';
 import type { Key } from 'chessground/types';
 import {
-  CaretLeftIcon, CaretRightIcon, CaretDoubleLeftIcon, CaretDoubleRightIcon, ArrowCounterClockwiseIcon, ArrowsDownUpIcon, PlayIcon, PauseIcon,
-  ArrowsLeftRightIcon, CopyIcon, EyeIcon, EyeSlashIcon, SlidersHorizontalIcon, PlusIcon, CheckIcon, ArrowUpRightIcon,
+  CaretLeftIcon, CaretRightIcon, SkipBackIcon, SkipForwardIcon, ArrowUUpLeftIcon, ArrowsClockwiseIcon, PlayIcon, PauseIcon,
+  UserSwitchIcon, CopySimpleIcon, EyeIcon, EyeSlashIcon, SlidersHorizontalIcon, PlusIcon, CheckIcon, ArrowUpRightIcon,
 } from '@phosphor-icons/react';
 import Board from './Board';
 import { Heat, Marks } from './Overlay';
@@ -15,7 +15,7 @@ import ReviewPanel from './ReviewPanel';
 import { botById } from '../lib/bots';
 import { think } from '../lib/brain';
 import { useJudge } from '../lib/useJudge';
-import { INITIAL_FEN, fromFen, toFen, play, stdUci, parseSquare, outcomeOf, winPct, fmtScore, isValidFen, pvSan, describeScore, type Score } from '../lib/chess';
+import { INITIAL_FEN, fromFen, toFen, play, stdUci, parseSquare, outcomeOf, winPct, fmtScore, isValidFen, pvSan, describeScore, captures, type Score } from '../lib/chess';
 import { reviewGame, CLS, type Review } from '../lib/review';
 import type { Hud } from '../lib/types';
 import { pieceVars } from '../lib/pieces';
@@ -88,6 +88,7 @@ export default function Arena() {
     return { pos, turn: pos.turn as Side, check: pos.isCheck(), dests: chessgroundDests(pos), outcome: outcomeOf(pos, game.fens.slice(0, ply + 1)) };
   }, [shownFen, ply, game.fens]);
 
+  const caps = useMemo(() => captures(shownFen), [shownFen]);
   const bothBots = seats.white.id !== HUMAN && seats.black.id !== HUMAN;
 
   // One human at the table: put their pieces at the bottom. Two humans or two bots: leave the board as is.
@@ -294,24 +295,33 @@ export default function Arena() {
     const bot = botById(st.id);
     const busy = thinking?.side === s;
     const toPlay = !game.outcome && ply === live && game.turn === s;
+    const lead = s === 'white' ? caps.diff : -caps.diff;
+    const inCheck = shown.check && shown.turn === s && !shown.outcome;
     return (
       <div className={`seat ${toPlay ? 'on' : ''}`} style={{ gridArea: area }} data-testid={`seat-${s}`}>
-        <button className="who" onClick={() => setSheet(s)} aria-label={`Configure ${s}`}>
+        <button className="who" onClick={() => setSheet(s)} aria-label={`Configure ${s}`} data-tip={`Choose who plays ${s}`}>
           <span className={`chip ${s}`} />
           <span className="name">{nameOf(st)}</span>
           <span className="sub mono">{summary(st)}</span>
         </button>
+        <span className="caps" data-testid={`caps-${s}`} aria-label={`${s} has captured ${caps.taken[s].length} pieces`}>
+          {caps.taken[s].map((r, i) => (
+            <Piece key={i} className={`${r} ${other(s)} ${caps.taken[s][i - 1] === r ? 'stack' : ''}`} />
+          ))}
+          {lead > 0 && <b className="mono">+{lead}</b>}
+        </span>
+        {inCheck && <span className="pill check" data-testid={`check-${s}`}><i />Check</span>}
         {busy && (
           <span className="state shimmer" data-testid={`thinking-${s}`}>
             {thinking?.text ?? 'Thinking'}
           </span>
         )}
         {bot && (
-          <button className="icon-btn" aria-pressed={st.hud} aria-label={`${st.hud ? 'Hide' : 'Show'} what ${bot.name} sees`} title={bot.hud} onClick={() => setSeats((x) => ({ ...x, [s]: { ...st, hud: !st.hud } }))} data-testid={`hud-${s}`}>
+          <button className="icon-btn" aria-pressed={st.hud} aria-label={`${st.hud ? 'Hide' : 'Show'} what ${bot.name} sees`} data-tip={`${st.hud ? 'Hide' : 'Show'} ${bot.name}'s view: ${bot.hud.toLowerCase()}`} onClick={() => setSeats((x) => ({ ...x, [s]: { ...st, hud: !st.hud } }))} data-testid={`hud-${s}`}>
             {st.hud ? <EyeIcon size={18} /> : <EyeSlashIcon size={18} />}
           </button>
         )}
-        <button className="icon-btn" aria-label={`Settings for ${s}`} onClick={() => setSheet(s)}>
+        <button className="icon-btn" aria-label={`Settings for ${s}`} data-tip={`${s === 'white' ? 'White' : 'Black'} player settings`} onClick={() => setSheet(s)}>
           <SlidersHorizontalIcon size={18} />
         </button>
       </div>
@@ -324,8 +334,7 @@ export default function Arena() {
     if (game.outcome) return game.outcome.winner ? `${game.outcome.reason}. ${game.outcome.winner === 'white' ? 'White' : 'Black'} wins.` : `Draw. ${game.outcome.reason}.`;
     if (paused && hasBot) return 'Paused.';
     const who = seats[game.turn];
-    const check = shown.check ? 'Check. ' : '';
-    return who.id === HUMAN ? `${check}${game.turn === 'white' ? 'White' : 'Black'} to move.` : `${check}${nameOf(who)} to move.`;
+    return who.id === HUMAN ? `${game.turn === 'white' ? 'White' : 'Black'} to move.` : `${nameOf(who)} to move.`;
   })();
 
   const top = orientation === 'white' ? 'black' : 'white';
@@ -430,26 +439,29 @@ export default function Arena() {
                 <button className="link" onClick={() => (setError(''), setRetry((r) => r + 1))}>Retry</button>
               )}
             </div>
-            <button className="cta small" onClick={() => reset()} data-testid="new-game">
+            <button className="cta small" onClick={() => reset()} data-testid="new-game" data-tip="Start over with the same players">
               New game
               <span className="cta-icon"><PlusIcon size={12} weight="bold" /></span>
             </button>
           </div>
-          <div className="dock">
-            <button className="icon-btn" aria-label="First move" onClick={() => go(0)} disabled={ply === 0}><CaretDoubleLeftIcon size={17} /></button>
-            <button className="icon-btn" aria-label="Previous move" onClick={() => go(ply - 1)} disabled={ply === 0}><CaretLeftIcon size={17} /></button>
-            <button className="icon-btn" aria-label="Next move" onClick={() => go(ply + 1)} disabled={ply === live}><CaretRightIcon size={17} /></button>
-            <button className="icon-btn" aria-label="Last move" onClick={() => go(live)} disabled={ply === live}><CaretDoubleRightIcon size={17} /></button>
-            <span className="sep" />
+          <div className="nav" aria-label="Move navigation">
+            <button className="icon-btn" aria-label="First move" data-tip="Start of game (Home)" onClick={() => go(0)} disabled={ply === 0}><SkipBackIcon size={17} weight="fill" /></button>
+            <button className="icon-btn" aria-label="Previous move" data-tip="Previous move (←)" onClick={() => go(ply - 1)} disabled={ply === 0}><CaretLeftIcon size={17} weight="bold" /></button>
+            <span className="counter mono" data-testid="counter">{ply === 0 ? 'Start' : `Move ${Math.ceil(ply / 2)}`}<em>{ply} / {live}</em></span>
+            <button className="icon-btn" aria-label="Next move" data-tip="Next move (→)" onClick={() => go(ply + 1)} disabled={ply === live}><CaretRightIcon size={17} weight="bold" /></button>
+            <button className="icon-btn" aria-label="Last move" data-tip="Latest position (End)" onClick={() => go(live)} disabled={ply === live}><SkipForwardIcon size={17} weight="fill" /></button>
+          </div>
+          <div className="actions">
             {hasBot && (
-              <button className="icon-btn" aria-label={paused ? 'Resume' : 'Pause'} onClick={() => setPaused(!paused)} disabled={!!game.outcome} data-testid="pause">
-                {paused ? <PlayIcon size={17} weight="fill" /> : <PauseIcon size={17} weight="fill" />}
+              <button className="chip-btn" aria-label={paused ? 'Resume' : 'Pause'} data-tip={paused ? 'Let the bots continue (Space)' : 'Stop the bots after this move (Space)'} onClick={() => setPaused(!paused)} disabled={!!game.outcome} data-testid="pause">
+                {paused ? <PlayIcon size={15} weight="fill" /> : <PauseIcon size={15} weight="fill" />}
+                {paused ? 'Resume' : 'Pause'}
               </button>
             )}
-            <button className="icon-btn" aria-label="Take back" onClick={undo} disabled={!live}><ArrowCounterClockwiseIcon size={17} /></button>
-            <button className="icon-btn" aria-label="Flip board" onClick={() => setOrientation(other)}><ArrowsDownUpIcon size={17} /></button>
-            <button className="icon-btn" aria-label="Swap sides" onClick={swap}><ArrowsLeftRightIcon size={17} /></button>
-            <button className="icon-btn" aria-label="Copy PGN" onClick={copyPgn} disabled={!live}>{copied ? <CheckIcon size={17} /> : <CopyIcon size={17} />}</button>
+            <button className="chip-btn" aria-label="Take back" data-tip="Undo your last move" onClick={undo} disabled={!live}><ArrowUUpLeftIcon size={15} weight="bold" />Undo</button>
+            <button className="chip-btn" aria-label="Flip board" data-tip="Turn the board around (F)" onClick={() => setOrientation(other)}><ArrowsClockwiseIcon size={15} weight="bold" />Flip</button>
+            <button className="chip-btn" aria-label="Swap sides" data-tip="Swap who plays White and Black" onClick={swap}><UserSwitchIcon size={15} weight="bold" />Swap</button>
+            <button className="chip-btn" aria-label="Copy PGN" data-tip="Copy the game as PGN" onClick={copyPgn} disabled={!live}>{copied ? <CheckIcon size={15} weight="bold" /> : <CopySimpleIcon size={15} weight="bold" />}{copied ? 'Copied' : 'PGN'}</button>
           </div>
           {bothBots && (
             <div className="pace">

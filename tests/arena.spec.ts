@@ -178,3 +178,15 @@ test('evaluation panel shows White / Draw / Black odds from the engine', async (
   const [w, d] = (await page.getByTestId('wdl').locator('.labels span').allTextContents()).map((t) => +t.replace(/\D/g, ''));
   expect(d).toBeGreaterThan(w);
 });
+
+test('captures, material lead and check indicator', async ({ page }) => {
+  await page.goto('/?white=human&black=human');
+  await page.getByRole('tab', { name: 'Load position' }).click();
+  await page.getByLabel('FEN or PGN').fill('1. e4 d5 2. exd5 Nf6 3. Bb5+');
+  await page.getByRole('button', { name: 'Load', exact: true }).click();
+  await expect(page.getByTestId('caps-white').locator('piece')).toHaveCount(1);
+  await expect(page.getByTestId('caps-white')).toContainText('+1');
+  await expect(page.getByTestId('check-black')).toBeVisible();
+  await expect(page.getByTestId('status')).not.toContainText('Check');
+  await expect(page.getByTestId('counter')).toContainText('5 / 5');
+});

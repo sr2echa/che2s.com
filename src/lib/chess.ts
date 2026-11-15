@@ -119,3 +119,21 @@ export function outcomeOf(pos: Chess, fens: string[]): Outcome {
   if (fens.filter((f) => key(f) === cur).length >= 3) return { reason: 'Threefold repetition' };
   return null;
 }
+
+const START_COUNT: Record<Role, number> = { pawn: 8, knight: 2, bishop: 2, rook: 2, queen: 1, king: 1 };
+const POINTS: Record<Role, number> = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 0 };
+const CAP_ORDER: Role[] = ['pawn', 'knight', 'bishop', 'rook', 'queen'];
+
+/** Pieces each side has taken (vs a full set) and White's material lead in points. */
+export function captures(fen: string) {
+  const pos = fromFen(fen);
+  const taken = { white: [] as Role[], black: [] as Role[] };
+  let diff = 0;
+  for (const role of CAP_ORDER) {
+    const w = pos.board.pieces('white', role).size(), b = pos.board.pieces('black', role).size();
+    diff += (w - b) * POINTS[role];
+    for (let i = b; i < START_COUNT[role]; i++) taken.white.push(role);
+    for (let i = w; i < START_COUNT[role]; i++) taken.black.push(role);
+  }
+  return { taken, diff };
+}
