@@ -24,7 +24,7 @@ test('human vs Stockfish: move, reply, live judge', async ({ page }) => {
   await clickSq(page, 'e2');
   await clickSq(page, 'e4');
   await expect(moveButtons(page)).toHaveCount(2, { timeout: 15_000 });
-  await expect(moveButtons(page).first()).toHaveText('e4');
+  await expect(moveButtons(page).first()).toHaveText(/^e4\W*$/); // a live rating glyph may follow
   await expect(page.getByTestId('status')).toHaveText(/White to move/);
   // Take back removes both plies.
   await page.getByLabel('Take back').click();
@@ -52,14 +52,14 @@ test('Maia downloads its network and plays a human move', async ({ page }) => {
   await expect(page.getByTestId('eye')).toContainText('%');
   await expect(page.getByTestId('hud-heat')).toBeVisible();
   // As White, Maia's top choice must be a normal human opening move.
-  await expect(moveButtons(page).first()).toHaveText(/^(e4|d4|c4|Nf3|g3|b3|e3|Nc3)$/);
+  await expect(moveButtons(page).first()).toHaveText(/^(e4|d4|c4|Nf3|g3|b3|e3|Nc3)\W*$/);
 
   // As Black (mirrored encoding), it should answer 1.e4 like a human would.
   await page.goto('/?white=human&black=maia');
   await clickSq(page, 'e2');
   await clickSq(page, 'e4');
   await expect(moveButtons(page)).toHaveCount(2, { timeout: 60_000 });
-  await expect(moveButtons(page).nth(1)).toHaveText(/^(e5|c5|e6|c6|d5|d6|Nf6|Nc6|g6)$/);
+  await expect(moveButtons(page).nth(1)).toHaveText(/^(e5|c5|e6|c6|d5|d6|Nf6|Nc6|g6)\W*$/);
 });
 
 test('HUD: Stockfish lines, Crystal graph, Monte heatmap', async ({ page }) => {
@@ -106,6 +106,11 @@ test('PGN load, checkmate verdict, review classifies every move', async ({ page 
   await expect(page.getByTestId('eval-graph')).toBeVisible();
   // 3...Nf6?? allows mate: must be a blunder or worse.
   await expect(page.getByTestId('review')).toContainText('Blunder');
+  // The coach opens on move 1 and explains each move; step to 3...Nf6.
+  await expect(page.getByTestId('coach-insight')).toContainText('e4');
+  for (let i = 0; i < 5; i++) await page.getByTestId('coach').getByLabel('Next move').click();
+  await expect(page.getByTestId('coach-insight')).toContainText('Blunder');
+  await expect(page.getByTestId('coach-insight')).toContainText(/Nf6 is a blunder: it allows Qxf7#?, and White mates in 1/);
   await page.getByTestId('eval-graph').click({ position: { x: 5, y: 40 } });
   await page.keyboard.press('ArrowRight');
   await expect(page.getByTestId('review-badge')).toBeVisible();
@@ -121,7 +126,7 @@ test('promotion picker under-promotes', async ({ page }) => {
   await clickSq(page, 'a7');
   await clickSq(page, 'a8');
   await page.getByLabel('Promote to knight').click();
-  await expect(moveButtons(page).first()).toHaveText('a8=N');
+  await expect(moveButtons(page).first()).toHaveText(/^a8=N/);
 });
 
 test('judge announces mate in one', async ({ page }) => {
@@ -204,4 +209,13 @@ test('game settings: piece set and judge off persist; judge off hides the evalua
     .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('cg-board piece.knight.white')!).backgroundImage))
     .toContain('/pieces/kiwen-suwi/wN.svg');
   await page.evaluate(() => localStorage.clear());
+});
+
+test('judge rates moves live and explains them', async ({ page }) => {
+  await page.goto('/?white=human&black=human');
+  await load(page, '1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6');
+  await expect(page.getByTestId('insight')).toContainText('Blunder', { timeout: 30_000 });
+  await expect(page.getByTestId('insight')).toContainText('White mates in 1');
+  await expect(page.getByTestId('moves').locator('.glyph')).toHaveCount(6);
+  await expect(page.getByTestId('review-badge')).toBeVisible();
 });

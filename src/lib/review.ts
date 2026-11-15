@@ -1,6 +1,7 @@
 // Game review: per-move classification in the style of chess.com, from Stockfish evaluations.
 import { Stockfish, type Line } from './stockfish';
-import { fromFen, after, negate, winPct, sanOf, VALUE, outcomeOf, legalMoves, type Score } from './chess';
+import { makeFen } from 'chessops/fen';
+import { fromFen, after, negate, winPct, sanOf, VALUE, outcomeOf, legalMoves, play, type Score } from './chess';
 import { attacks } from 'chessops/attacks';
 import { parseSquare } from 'chessops/util';
 
@@ -26,8 +27,11 @@ export interface MoveReview {
   cls: Cls;
   /** Win-% lost by the mover. */
   loss: number;
-  /** White-POV score after the move. */
+  /** White-POV scores before and after the move. */
+  before: Score;
   after: Score;
+  /** Plain-language reason for the rating. */
+  explain: string;
   best: string;
   bestSan: string;
 }
@@ -72,65 +76,166 @@ function isSacrifice(fenBefore: string, uci: string) {
   return (!defended || cheapest < VALUE[moved.role]) && gain + 50 < VALUE[moved.role];
 }
 
+// ---- analysis cache ---------------------------------------------------------------
+
+export interface Analysis {
+  /** Side-to-move POV; {mate: 0} = side to move is mated. */
+  score: Score;
+  lines: Line[];
+  depth: number;
+}
+
+/** One Stockfish shared by live ratings and the full review, with a per-position cache. */
+export class Analyst {
+  private sf: Stockfish | null = null;
+  private cache = new Map<string, Analysis>();
+
+  async get(fen: string, depth: number): Promise<Analysis> {
+    const hit = this.cache.get(fen);
+    if (hit && hit.depth >= depth) return hit;
+    const t = terminalScore(fen);
+    let a: Analysis;
+    if (t) a = { score: t, lines: [], depth: 99 };
+    else {
+      this.sf ??= new Stockfish();
+      await this.sf.setOptions({ UCI_LimitStrength: false });
+      const r = await this.sf.analyse(fen, { depth }, 2);
+      a = { score: r.lines[0] ?? { cp: 0 }, lines: r.lines, depth };
+    }
+    this.cache.set(fen, a);
+    return a;
+  }
+}
+
+export const analyst = new Analyst();
+
+// ---- classification + explanation -----------------------------------------------------
+
+const toWhite = (fen: string, s: Score): Score => {
+  const w = fen.split(' ')[1] === 'w';
+  if (s.mate === 0) return { mate: 0, cp: w ? -1 : 1 };
+  return w ? s : negate(s);
+};
+
+const POINTS = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 0 } as const;
+function materialFor(fen: string, color: 'white' | 'black') {
+  const pos = fromFen(fen);
+  let v = 0;
+  for (const [, p] of pos.board) v += (p.color === color ? 1 : -1) * POINTS[p.role];
+  return v;
+}
+/** Mover's material change after playing `line` from `fen` (stops at an illegal move). */
+function swing(fen: string, line: string[], mover: 'white' | 'black') {
+  const pos = fromFen(fen);
+  const start = materialFor(fen, mover);
+  for (const u of line) if (!play(pos, u)) break;
+  return materialFor(toFenOf(pos), mover) - start;
+}
+const toFenOf = (pos: ReturnType<typeof fromFen>) => makeFen(pos.toSetup());
+const WORDS: Record<number, string> = { 1: 'a pawn', 2: 'two pawns', 3: 'a piece', 4: 'a piece and a pawn', 5: 'a rook', 6: 'a rook and a pawn', 8: 'a rook and a piece', 9: 'the queen' };
+const words = (n: number) => WORDS[n] ?? `${n} points of material`;
+const side = (c: 'white' | 'black') => (c === 'white' ? 'White' : 'Black');
+
+function explain(fen: string, uci: string, cls: Cls, before: Analysis, afterA: Analysis): string {
+  const san = sanOf(fen, uci);
+  const mover = fen.split(' ')[1] === 'w' ? 'white' : 'black';
+  const enemy = mover === 'white' ? 'black' : 'white';
+  const best = before.lines[0]?.pv ?? [];
+  const bestSan = best[0] ? sanOf(fen, best[0]) : san;
+  const fen2 = after(fen, uci);
+  const reply = afterA.lines[0]?.pv ?? [];
+  const replySan = reply[0] ? sanOf(fen2, reply[0]) : '';
+  const lost = -swing(fen2, reply.slice(0, 4), mover);
+  const bestGain = swing(fen, best.slice(0, 5), mover);
+  const oppMate = afterA.score.mate !== undefined && afterA.score.mate > 0 ? afterA.score.mate : 0;
+  const ownMate = before.score.mate !== undefined && before.score.mate > 0 ? before.score.mate : 0;
+  const bestWhy = ownMate ? `, which forces mate in ${ownMate}` : bestGain >= 1 ? `, which wins ${words(bestGain)}` : '';
+  const consequence = oppMate
+    ? `it allows ${replySan}, and ${side(enemy)} mates in ${oppMate}`
+    : lost >= 1 && replySan
+      ? `after ${replySan} it loses ${words(lost)}`
+      : replySan
+        ? `${replySan} gives ${side(enemy)} the upper hand`
+        : 'it throws away the advantage';
+
+  switch (cls) {
+    case 'forced':
+      return `${san} is the only legal move.`;
+    case 'brilliant':
+      return `${san} is brilliant. It leaves material hanging on purpose, and the position still holds up.`;
+    case 'great':
+      return `${san} is the only good move here. Every alternative lets the advantage slip.`;
+    case 'best':
+      if (afterA.score.mate === 0) return `${san} is checkmate.`;
+      if (ownMate) return `${san} is the best move and keeps a forced mate in ${ownMate}.`;
+      return bestGain >= 1 ? `${san} is the best move. It wins ${words(bestGain)}.` : `${san} is the engine's first choice.`;
+    case 'excellent':
+      return `${san} is excellent, nearly as strong as ${bestSan}.`;
+    case 'good':
+      return `${san} is a decent move, but ${bestSan} was stronger${bestWhy}.`;
+    case 'inaccuracy':
+      return `${san} is an inaccuracy. ${bestSan} was more precise${bestWhy}.`;
+    case 'mistake':
+      return `${san} is a mistake: ${consequence}. ${bestSan} was better${bestWhy}.`;
+    case 'miss':
+      return `${san} misses the chance to punish the last move. ${bestSan} was available${bestWhy}.`;
+    case 'blunder':
+      return `${san} is a blunder: ${consequence}. Best was ${bestSan}${bestWhy}.`;
+  }
+}
+
+/** Rates one move from cached analyses of the positions before and after it. */
+export function rateMove(fen: string, uci: string, before: Analysis, afterA: Analysis, prev: Cls | undefined, ply: number): MoveReview {
+  const wpB = wp(before.score);
+  const wpA = afterA.score.mate === 0 ? 100 : wp(negate(afterA.score));
+  const loss = Math.max(0, wpB - wpA);
+  const best = before.lines[0]?.pv[0] ?? uci;
+  const second = before.lines[1];
+  let cls: Cls;
+  if (legalMoves(fromFen(fen)).length === 1) cls = 'forced';
+  else if (uci === best || loss < 1) {
+    cls = 'best';
+    if (second && wp(second) < wpB - 15 && wpA > 30) cls = 'great';
+    if (isSacrifice(fen, uci) && wpA >= 45 && wpB <= 97) cls = 'brilliant';
+  } else if (loss < 2) cls = isSacrifice(fen, uci) && wpA >= 50 ? 'brilliant' : 'excellent';
+  else if (loss < 5) cls = 'good';
+  else if (loss < 10) cls = 'inaccuracy';
+  else if (loss < 20) cls = 'mistake';
+  else cls = 'blunder';
+  if ((prev === 'mistake' || prev === 'blunder') && loss >= 10) cls = 'miss';
+  const fen2 = after(fen, uci);
+  return {
+    ply,
+    uci,
+    san: sanOf(fen, uci),
+    cls,
+    loss,
+    before: toWhite(fen, before.score),
+    after: toWhite(fen2, afterA.score),
+    best,
+    bestSan: sanOf(fen, best),
+    explain: explain(fen, uci, cls, before, afterA),
+  };
+}
+
 export async function reviewGame(startFen: string, moves: string[], depth: number, onProgress: (done: number, total: number) => void): Promise<Review> {
   const fens = [startFen];
   for (const m of moves) fens.push(after(fens[fens.length - 1], m));
-  const sf = new Stockfish();
-  const lines: Line[][] = [];
-  const scores: Score[] = [];
-  try {
-    for (const [i, fen] of fens.entries()) {
-      const t = terminalScore(fen);
-      if (t) {
-        lines.push([]);
-        scores.push(t);
-      } else {
-        const r = await sf.analyse(fen, { depth }, 2);
-        lines.push(r.lines);
-        scores.push(r.lines[0] ?? { cp: 0 });
-      }
-      onProgress(i + 1, fens.length);
-    }
-  } finally {
-    sf.terminate();
+  const an: Analysis[] = [];
+  for (const [i, fen] of fens.entries()) {
+    an.push(await analyst.get(fen, depth));
+    onProgress(i + 1, fens.length);
   }
-
-  const whiteScore = (i: number): Score => {
-    const w = fens[i].split(' ')[1] === 'w';
-    if (scores[i].mate === 0) return { mate: 0, cp: w ? -1 : 1 };
-    return w ? scores[i] : negate(scores[i]);
-  };
   const out: MoveReview[] = [];
   const losses = { white: [] as number[], black: [] as number[] };
   const counts: Review['counts'] = { white: {}, black: {} };
-
   for (let i = 0; i < moves.length; i++) {
-    const fen = fens[i];
-    const mover = fen.split(' ')[1] === 'w' ? 'white' : 'black';
-    const before = scores[i];
-    const afterS = negate(scores[i + 1]);
-    const wpB = wp(before), wpA = scores[i + 1].mate === 0 ? 100 : wp(afterS);
-    const loss = Math.max(0, wpB - wpA);
-    const best = lines[i][0]?.pv[0] ?? moves[i];
-    const second = lines[i][1];
-    let cls: Cls;
-    if (legalMoves(fromFen(fen)).length === 1) cls = 'forced';
-    else if (moves[i] === best || loss < 1) {
-      cls = 'best';
-      if (second && wp(second) < wpB - 15 && wpA > 30) cls = 'great';
-      if (isSacrifice(fen, moves[i]) && wpA >= 45 && wpB <= 97) cls = 'brilliant';
-    } else if (loss < 2) cls = isSacrifice(fen, moves[i]) && wpA >= 50 ? 'brilliant' : 'excellent';
-    else if (loss < 5) cls = 'good';
-    else if (loss < 10) cls = 'inaccuracy';
-    else if (loss < 20) cls = 'mistake';
-    else cls = 'blunder';
-    const prev = out[i - 1]?.cls;
-    if ((prev === 'mistake' || prev === 'blunder') && loss >= 10) cls = 'miss';
-
-    losses[mover].push(loss);
-    counts[mover][cls] = (counts[mover][cls] ?? 0) + 1;
-    out.push({ ply: i + 1, uci: moves[i], san: sanOf(fen, moves[i]), cls, loss, after: whiteScore(i + 1), best, bestSan: sanOf(fen, best) });
+    const r = rateMove(fens[i], moves[i], an[i], an[i + 1], out[i - 1]?.cls, i + 1);
+    const mover = fens[i].split(' ')[1] === 'w' ? 'white' : 'black';
+    losses[mover].push(r.loss);
+    counts[mover][r.cls] = (counts[mover][r.cls] ?? 0) + 1;
+    out.push(r);
   }
   const mean = (a: number[]) => (a.length ? a.map(accuracyOf).reduce((x, y) => x + y, 0) / a.length : 100);
-  return { moves: out, start: whiteScore(0), accuracy: { white: mean(losses.white), black: mean(losses.black) }, counts };
+  return { moves: out, start: toWhite(startFen, an[0].score), accuracy: { white: mean(losses.white), black: mean(losses.black) }, counts };
 }

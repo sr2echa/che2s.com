@@ -10,13 +10,14 @@ import {
 import Board from './Board';
 import { Heat, Marks } from './Overlay';
 import SeatSheet, { HUMAN, settingsOf, type Seat } from './SeatSheet';
-import ReviewPanel from './ReviewPanel';
+import ReviewPanel, { Insight } from './ReviewPanel';
+import { useLiveRatings } from '../lib/useLiveRatings';
 import GameSheet, { usePrefs } from './GameSheet';
 import { botById } from '../lib/bots';
 import { think } from '../lib/brain';
 import { useJudge } from '../lib/useJudge';
 import { INITIAL_FEN, fromFen, toFen, play, stdUci, parseSquare, outcomeOf, winPct, fmtScore, isValidFen, pvSan, describeScore, captures, type Score } from '../lib/chess';
-import { reviewGame, CLS, type Review } from '../lib/review';
+import { reviewGame, CLS, type Review, type MoveReview } from '../lib/review';
 import type { Hud } from '../lib/types';
 import { pieceVars } from '../lib/pieces';
 
@@ -87,6 +88,8 @@ export default function Arena() {
   }, [shownFen, ply, game.fens]);
 
   const caps = useMemo(() => captures(shownFen), [shownFen]);
+  const liveRatings = useLiveRatings(game.fens, moves.slice(0, game.sans.length), prefs.live);
+  const ratings: (MoveReview | undefined)[] = review?.moves ?? liveRatings;
   const bothBots = seats.white.id !== HUMAN && seats.black.id !== HUMAN;
 
   // One human at the table: put their pieces at the bottom. Two humans or two bots: leave the board as is.
@@ -180,7 +183,7 @@ export default function Arena() {
     return { hud: null };
   }, [seats, shown.turn, shownFen, huds, ply]);
 
-  const rev = review && ply > 0 ? review.moves[ply - 1] : undefined;
+  const rev = ply > 0 ? ratings[ply - 1] : undefined;
   const badge = rev ? { sq: rev.uci.slice(2, 4), glyph: CLS[rev.cls].glyph, color: CLS[rev.cls].color } : undefined;
   const marks: Hud | null = rev && !['best', 'brilliant', 'great', 'forced'].includes(rev.cls)
     ? { ...(hud ?? {}), arrows: [...(hud?.arrows ?? []), { from: rev.best.slice(0, 2), to: rev.best.slice(2, 4), tone: 'pick', label: 'best' }] }
@@ -259,6 +262,7 @@ export default function Arena() {
     setReviewing(0);
     try {
       setReview(await reviewGame(startFen, moves, reviewDepth, (d, t) => setReviewing(d / t)));
+      setView(moves.length ? 1 : -1);
     } finally {
       setReviewing(null);
     }
@@ -426,6 +430,8 @@ export default function Arena() {
           </div>
         )}
 
+        {rev && tab === 'moves' && <Insight key={`${ply}-${rev.uci}`} r={rev} />}
+
         <div className="reveal" style={{ ['--i' as string]: 1 }}>
           <div className="status-row">
             <div className={`status ${error ? 'err' : ''}`} data-testid="status">
@@ -473,11 +479,11 @@ export default function Arena() {
             <div className="moves" ref={movesRef} data-testid="moves">
               {!rows.length && <div className="empty">No moves yet. {seats[game.turn].id === HUMAN ? 'Make the first one.' : ''}</div>}
               {rows.map((r) => (
-                <MoveRow key={r.n} r={r} sans={game.sans} ply={ply} go={go} review={review} />
+                <MoveRow key={r.n} r={r} sans={game.sans} ply={ply} go={go} ratings={ratings} />
               ))}
             </div>
           ) : (
-            <ReviewPanel review={review} progress={reviewing} depth={reviewDepth} setDepth={setReviewDepth} run={runReview} canRun={live > 0} ply={ply} go={go} sans={game.sans} />
+            <ReviewPanel review={review} progress={reviewing} depth={reviewDepth} setDepth={setReviewDepth} run={runReview} canRun={live > 0} ply={ply} go={go} />
           )}
         </div>
 
@@ -526,12 +532,12 @@ function Wdl({ wdl }: { wdl: [number, number, number] }) {
   );
 }
 
-function MoveRow({ r, sans, ply, go, review }: { r: { n: number; w?: number; b?: number }; sans: string[]; ply: number; go(i: number): void; review: Review | null }) {
+function MoveRow({ r, sans, ply, go, ratings }: { r: { n: number; w?: number; b?: number }; sans: string[]; ply: number; go(i: number): void; ratings: (MoveReview | undefined)[] }) {
   const cell = (i?: number) =>
     i === undefined ? <span /> : (
       <button aria-current={ply === i + 1} onClick={() => go(i + 1)}>
         {sans[i]}
-        {review?.moves[i] && <span className="glyph" style={{ color: CLS[review.moves[i].cls].color }}>{CLS[review.moves[i].cls].glyph}</span>}
+        {ratings[i] && <span className="glyph" style={{ color: CLS[ratings[i]!.cls].color }} title={CLS[ratings[i]!.cls].label}>{CLS[ratings[i]!.cls].glyph}</span>}
       </button>
     );
   return (
