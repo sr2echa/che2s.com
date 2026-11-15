@@ -557,8 +557,8 @@ export default function Arena() {
             <span className="cta-icon"><PlusIcon size={12} weight="bold" /></span>
           </button>
         )}
-        <button className="chip-btn" aria-label="Game settings" data-tip="Judge, pieces, board, pace, load a position" onClick={() => setGameSheet(true)}>
-          <GearSixIcon size={15} weight="bold" />Settings
+        <button className="icon-btn settings-btn" aria-label="Game settings" data-tip="Settings: judge, pieces, board, pace, load a position" onClick={() => setGameSheet(true)}>
+          <GearSixIcon size={22} />
         </button>
       </div>
 

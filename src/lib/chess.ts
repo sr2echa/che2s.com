@@ -89,8 +89,9 @@ export function describeScore(s: Score): string {
   if (s.mate === 0) return (s.cp ?? 0) === 0 ? 'Drawn.' : `Checkmate. ${(s.cp ?? 0) > 0 ? 'White' : 'Black'} wins.`;
   if (s.mate) return `${s.mate > 0 ? 'White' : 'Black'} has mate in ${Math.abs(s.mate)}.`;
   const cp = s.cp ?? 0, side = cp > 0 ? 'White' : 'Black', a = Math.abs(cp);
-  if (a < 25) return 'The position is equal.';
-  if (a < 75) return `${side} is slightly better.`;
+  // Within a third of a pawn counts as equal: the start position itself is about +0.3 for the side that moves first.
+  if (a < 35) return 'The position is equal.';
+  if (a < 80) return `${side} is slightly better.`;
   if (a < 175) return `${side} is better.`;
   if (a < 400) return `${side} is clearly better.`;
   return `${side} is winning.`;
