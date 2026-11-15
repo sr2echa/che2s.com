@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { XIcon, ArrowUpRightIcon } from '@phosphor-icons/react';
+import { XIcon, ArrowUpRightIcon, CheckIcon } from '@phosphor-icons/react';
 import { Range, Switch } from './Controls';
-import { PIECE_SETS } from '../lib/pieces';
+import { PIECE_SETS, BOARD_THEMES, pieceVars } from '../lib/pieces';
 
 export interface Prefs {
   judge: boolean;
@@ -59,6 +59,41 @@ export default function GameSheet({ prefs, set, onLoad, onClose }: Props) {
         </header>
         <div className="body">
           <section>
+            <p className="lead">Appearance</p>
+            <h3 className="section-title">Pieces</h3>
+            <div className="options" role="radiogroup" aria-label="Piece set">
+              {PIECE_SETS.map((p) => (
+                <button key={p.id} role="radio" aria-checked={prefs.pieces === p.id} onClick={() => set({ pieces: p.id })} data-testid={`set-${p.id}`}>
+                  <span className="preview strip">
+                    {['wK', 'bQ', 'wR', 'bB', 'wN', 'bP'].map((c, i) => (
+                      <i key={c} className={i % 2 ? 'dk' : 'lt'}><img src={`/pieces/${p.id}/${c}.svg`} alt="" /></i>
+                    ))}
+                  </span>
+                  <span className="meta"><b>{p.name}</b><small>{p.by}</small></span>
+                  {prefs.pieces === p.id && <CheckIcon size={16} weight="bold" className="tick" />}
+                </button>
+              ))}
+            </div>
+            <h3 className="section-title" style={{ marginTop: 22 }}>Board</h3>
+            <div className="options" role="radiogroup" aria-label="Board colours">
+              {BOARD_THEMES.map((t) => (
+                <button key={t.id} role="radio" aria-checked={prefs.board === t.id} onClick={() => set({ board: t.id })} data-testid={`board-${t.id}`}>
+                  <span className="preview mini-board" style={{ ['--l' as string]: t.light, ['--d' as string]: t.dark, ...pieceVars(prefs.pieces) }}>
+                    {Array.from({ length: 8 }, (_, i) => (
+                      <i key={i} className={(i + (i >> 2)) % 2 ? 'dk' : 'lt'}>
+                        {i === 1 && <img src={`/pieces/${prefs.pieces}/bN.svg`} alt="" />}
+                        {i === 6 && <img src={`/pieces/${prefs.pieces}/wK.svg`} alt="" />}
+                      </i>
+                    ))}
+                  </span>
+                  <span className="meta"><b>{t.name}</b></span>
+                  {prefs.board === t.id && <CheckIcon size={16} weight="bold" className="tick" />}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section>
             <p className="lead">Judge</p>
             <p className="about">Stockfish 19 at full strength scores every position, independent of the players.</p>
             <div className="field inline">
@@ -87,6 +122,23 @@ export default function GameSheet({ prefs, set, onLoad, onClose }: Props) {
               </div>
               <Switch checked={prefs.live} onChange={(live) => set({ live })} label="Rate moves live" />
             </div>
+            <h3 className="section-title" style={{ marginTop: 18 }}>Show in the judge</h3>
+            {(
+              [
+                ['evalBar', 'Eval bar', 'The light column beside the board'],
+                ['wdl', 'Win / draw / loss', 'Three bars under the score'],
+                ['bestLine', 'Best line', "The engine's expected continuation"],
+                ['ratingCard', 'Move rating card', 'Rating and reason for the last move'],
+              ] as const
+            ).map(([k, label, hint]) => (
+              <div key={k} className={`field inline ${prefs.judge || k === 'ratingCard' ? '' : 'disabled'}`}>
+                <div>
+                  <div>{label}</div>
+                  <div className="hint">{hint}</div>
+                </div>
+                <Switch checked={prefs[k]} onChange={(v) => set({ [k]: v })} label={label} />
+              </div>
+            ))}
           </section>
 
           <section>
@@ -95,21 +147,6 @@ export default function GameSheet({ prefs, set, onLoad, onClose }: Props) {
               <div className="head"><span>Pace between moves</span><span className="val">{prefs.pace} ms</span></div>
               <div className="hint">When two bots play each other</div>
               <Range label="Pace" min={0} max={2000} step={100} value={prefs.pace} onChange={(pace) => set({ pace })} />
-            </div>
-          </section>
-
-          <section>
-            <p className="lead">Pieces</p>
-            <div className="sets" role="radiogroup" aria-label="Piece set">
-              {PIECE_SETS.map((p) => (
-                <button key={p.id} role="radio" aria-checked={prefs.pieces === p.id} onClick={() => set({ pieces: p.id })} data-testid={`set-${p.id}`}>
-                  <span className="pair">
-                    <img src={`/pieces/${p.id}/wN.svg`} alt="" />
-                    <img src={`/pieces/${p.id}/bK.svg`} alt="" />
-                  </span>
-                  {p.name}
-                </button>
-              ))}
             </div>
           </section>
 

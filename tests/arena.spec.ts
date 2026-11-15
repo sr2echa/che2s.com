@@ -199,10 +199,13 @@ test('game settings: piece set and judge off persist; judge off hides the evalua
   await expect(page.getByTestId('judge')).toBeVisible();
   await page.getByLabel('Game settings').click();
   await page.getByTestId('set-kiwen-suwi').click();
+  await page.getByTestId('board-sage').click();
+  await page.getByRole('switch', { name: 'Win / draw / loss' }).click();
   await page.getByRole('switch', { name: 'Judge' }).click();
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('judge')).toHaveCount(0);
   await expect(page.getByTestId('evalbar')).toHaveCount(0);
+  await expect(page.locator('.arena')).toHaveCSS('--sq-dark', '#8ea488');
   await page.reload();
   await expect(page.getByTestId('judge')).toHaveCount(0);
   // Chessground re-creates piece nodes on resize, so poll rather than hold a handle.

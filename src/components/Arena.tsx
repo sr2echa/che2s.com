@@ -19,7 +19,7 @@ import { useJudge } from '../lib/useJudge';
 import { INITIAL_FEN, fromFen, toFen, play, stdUci, parseSquare, outcomeOf, winPct, fmtScore, isValidFen, pvSan, describeScore, captures, type Score } from '../lib/chess';
 import { reviewGame, CLS, type Review, type MoveReview } from '../lib/review';
 import type { Hud } from '../lib/types';
-import { pieceVars } from '../lib/pieces';
+import { pieceVars, boardVars } from '../lib/pieces';
 
 type Side = 'white' | 'black';
 // chessground's piece CSS targets a custom <piece> element.
@@ -363,7 +363,7 @@ export default function Arena() {
   const deck = deckTabs.includes(tab) ? tab : 'moves';
 
   return (
-    <div className="arena" data-pieces style={{ ['--wp' as string]: showJudge ? wp : 50, ...pieceVars(pieceSet) }}>
+    <div className="arena" data-pieces style={{ ['--wp' as string]: showJudge ? wp : 50, ...pieceVars(pieceSet), ...boardVars(prefs.board) }}>
       <div className="aura" aria-hidden />
       <section className="stage">
         {seatRow(top, 'top')}
