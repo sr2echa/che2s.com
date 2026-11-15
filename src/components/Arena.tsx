@@ -299,10 +299,21 @@ export default function Arena() {
     const lead = s === 'white' ? caps.diff : -caps.diff;
     const inCheck = shown.check && shown.turn === s && !shown.outcome;
     return (
-      <div className={`seat ${toPlay ? 'on' : ''}`} style={{ gridArea: area }} data-testid={`seat-${s}`}>
+      <div className={`seat ${area} ${toPlay ? 'on' : ''}`} style={{ gridArea: area }} data-testid={`seat-${s}`}>
         <button className="who" onClick={() => setSheet(s)} aria-label={`Configure ${s}`} data-tip={`Choose who plays ${s}`}>
           <span className={`chip ${s}`} />
-          <span className="name">{nameOf(st)}</span>
+          <span className="name">
+            {nameOf(st)}
+            {/* Signals float off the name so they never push the row around. */}
+            {inCheck ? (
+              <span className="bubble check" data-testid={`check-${s}`}>Check</span>
+            ) : busy ? (
+              <span className="bubble typing" data-testid={`thinking-${s}`} title={thinking?.text ?? 'Thinking'}>
+                <i /><i /><i />
+                {thinking?.text && <em>{thinking.text.replace('Downloading network · ', '')}</em>}
+              </span>
+            ) : null}
+          </span>
           <span className="sub mono">{summary(st)}</span>
         </button>
         <span className="caps" data-testid={`caps-${s}`} aria-label={`${s} has captured ${caps.taken[s].length} pieces`}>
@@ -311,12 +322,7 @@ export default function Arena() {
           ))}
           {lead > 0 && <b className="mono">+{lead}</b>}
         </span>
-        {inCheck && <span className="pill check" data-testid={`check-${s}`}><i />Check</span>}
-        {busy && (
-          <span className="state shimmer" data-testid={`thinking-${s}`}>
-            {thinking?.text ?? 'Thinking'}
-          </span>
-        )}
+        {!bot && <span className="icon-slot" />}
         {bot && (
           <button className="icon-btn" aria-pressed={st.hud} aria-label={`${st.hud ? 'Hide' : 'Show'} what ${bot.name} sees`} data-tip={`${st.hud ? 'Hide' : 'Show'} ${bot.name}'s view: ${bot.hud.toLowerCase()}`} onClick={() => (setSeats((x) => ({ ...x, [s]: { ...st, hud: !st.hud } })), !st.hud && setTab('vision'))} data-testid={`hud-${s}`}>
             {st.hud ? <EyeIcon size={18} /> : <EyeSlashIcon size={18} />}
