@@ -5,13 +5,13 @@ import { parseSan } from 'chessops/san';
 import type { Key } from 'chessground/types';
 import {
   CaretLeftIcon, CaretRightIcon, SkipBackIcon, SkipForwardIcon, ArrowUUpLeftIcon, ArrowsClockwiseIcon, PlayIcon, PauseIcon,
-  UserSwitchIcon, CopySimpleIcon, EyeIcon, EyeSlashIcon, SlidersHorizontalIcon, PlusIcon, CheckIcon, ArrowUpRightIcon,
+  UserSwitchIcon, CopySimpleIcon, GearSixIcon, EyeIcon, EyeSlashIcon, SlidersHorizontalIcon, PlusIcon, CheckIcon, ArrowUpRightIcon,
 } from '@phosphor-icons/react';
 import Board from './Board';
 import { Heat, Marks } from './Overlay';
 import SeatSheet, { HUMAN, settingsOf, type Seat } from './SeatSheet';
-import { Range, Switch } from './Controls';
 import ReviewPanel from './ReviewPanel';
+import GameSheet, { usePrefs } from './GameSheet';
 import { botById } from '../lib/bots';
 import { think } from '../lib/brain';
 import { useJudge } from '../lib/useJudge';
@@ -48,7 +48,6 @@ export default function Arena() {
   const [view, setView] = useState(-1);
   const [orientation, setOrientation] = useState<Side>(() => (seats.white.id !== HUMAN && seats.black.id === HUMAN ? 'black' : 'white'));
   const [paused, setPaused] = useState(false);
-  const [pace, setPace] = useState(500);
   const [huds, setHuds] = useState<Record<number, Hud>>({});
   const [thinking, setThinking] = useState<{ side: Side; text?: string } | null>(null);
   const [error, setError] = useState('');
@@ -56,16 +55,15 @@ export default function Arena() {
   const [sheet, setSheet] = useState<Side | null>(null);
   const [promo, setPromo] = useState<{ from: Key; to: Key } | null>(null);
   const [sync, setSync] = useState(0);
-  const [judgeOn, setJudgeOn] = useState(true);
-  const [judgeDepth, setJudgeDepth] = useState(18);
-  const [hint, setHint] = useState(false);
+  const [prefs, setPrefs] = usePrefs();
+  const [gameSheet, setGameSheet] = useState(false);
+  const { judge: judgeOn, depth: judgeDepth, hint, pace } = prefs;
   const [tab, setTab] = useState<'moves' | 'review'>('moves');
   const [review, setReview] = useState<Review | null>(null);
   const [reviewing, setReviewing] = useState<number | null>(null);
   const [reviewDepth, setReviewDepth] = useState(14);
-  const [paste, setPaste] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const pieceSet = 'papercut';
+  const pieceSet = prefs.pieces;
 
   const game = useMemo(() => {
     const fens = [startFen];
@@ -237,12 +235,12 @@ export default function Arena() {
     setCopied(true);
     setTimeout(() => setCopied(false), 1400);
   };
-  const load = (text: string) => {
+  const load = (text: string): string | void => {
     const t = text.trim();
-    if (isValidFen(t)) return reset(t), setPaste(null);
+    if (isValidFen(t)) return reset(t);
     const g = parsePgn(t)[0];
     const start = g && startingPosition(g.headers);
-    if (!g || !start || start.isErr) return setError('Could not read that FEN or PGN.');
+    if (!g || !start || start.isErr) return 'Could not read that FEN or PGN.';
     const pos = start.unwrap();
     const fen = toFen(pos as never);
     const ms: string[] = [];
@@ -254,7 +252,6 @@ export default function Arena() {
       ms.push(u);
     }
     reset(fen, ms);
-    setPaste(null);
   };
 
   const runReview = async () => {
@@ -270,7 +267,7 @@ export default function Arena() {
   // ---- keyboard ------------------------------------------------------------------
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest('input, textarea') || sheet) return;
+      if ((e.target as HTMLElement).closest('input, textarea') || sheet || gameSheet) return;
       if (e.key === 'ArrowLeft') go(ply - 1);
       else if (e.key === 'ArrowRight') go(ply + 1);
       else if (e.key === 'Home') go(0);
@@ -350,8 +347,6 @@ export default function Arena() {
   const mate = judge?.score.mate;
   const files = orientation === 'white' ? 'abcdefgh' : 'hgfedcba';
   const ranks = orientation === 'white' ? '87654321' : '12345678';
-  const tabs = ['moves', 'review', 'load'] as const;
-  const tabIndex = paste !== null ? 2 : tabs.indexOf(tab);
   const showJudge = judgeOn && !!judge;
 
   return (
@@ -439,6 +434,9 @@ export default function Arena() {
                 <button className="link" onClick={() => (setError(''), setRetry((r) => r + 1))}>Retry</button>
               )}
             </div>
+            <button className="icon-btn" aria-label="Game settings" data-tip="Judge, pace, pieces, load a position" onClick={() => setGameSheet(true)} style={{ marginLeft: 'auto' }}>
+              <GearSixIcon size={18} />
+            </button>
             <button className="cta small" onClick={() => reset()} data-testid="new-game" data-tip="Start over with the same players">
               New game
               <span className="cta-icon"><PlusIcon size={12} weight="bold" /></span>
@@ -463,28 +461,15 @@ export default function Arena() {
             <button className="chip-btn" aria-label="Swap sides" data-tip="Swap who plays White and Black" onClick={swap}><UserSwitchIcon size={15} weight="bold" />Swap</button>
             <button className="chip-btn" aria-label="Copy PGN" data-tip="Copy the game as PGN" onClick={copyPgn} disabled={!live}>{copied ? <CheckIcon size={15} weight="bold" /> : <CopySimpleIcon size={15} weight="bold" />}{copied ? 'Copied' : 'PGN'}</button>
           </div>
-          {bothBots && (
-            <div className="pace">
-              <span className="label">Pace</span>
-              <Range label="Pace" min={0} max={2000} step={100} value={pace} onChange={setPace} />
-              <span className="mono faint">{pace} ms</span>
-            </div>
-          )}
         </div>
 
         <div className="reveal sheetless" style={{ ['--i' as string]: 2 }}>
-          <div className="tabs" role="tablist" style={{ ['--t' as string]: tabIndex }}>
+          <div className="tabs two" role="tablist" style={{ ['--t' as string]: tab === 'moves' ? 0 : 1 }}>
             <i className="tab-ink" />
-            <button role="tab" aria-selected={tabIndex === 0} onClick={() => (setTab('moves'), setPaste(null))}>Moves</button>
-            <button role="tab" aria-selected={tabIndex === 1} onClick={() => (setTab('review'), setPaste(null))} data-testid="tab-review">Review</button>
-            <button role="tab" aria-selected={tabIndex === 2} onClick={() => setPaste(paste ?? '')}>Load position</button>
+            <button role="tab" aria-selected={tab === 'moves'} onClick={() => setTab('moves')}>Moves</button>
+            <button role="tab" aria-selected={tab === 'review'} onClick={() => setTab('review')} data-testid="tab-review">Review</button>
           </div>
-          {paste !== null ? (
-            <div className="loader">
-              <textarea className="paste" aria-label="FEN or PGN" placeholder="Paste a FEN or PGN" value={paste} onChange={(e) => setPaste(e.target.value)} />
-              <button className="cta small" onClick={() => load(paste)} disabled={!paste.trim()}>Load<span className="cta-icon"><ArrowUpRightIcon size={12} weight="bold" /></span></button>
-            </div>
-          ) : tab === 'moves' ? (
+          {tab === 'moves' ? (
             <div className="moves" ref={movesRef} data-testid="moves">
               {!rows.length && <div className="empty">No moves yet. {seats[game.turn].id === HUMAN ? 'Make the first one.' : ''}</div>}
               {rows.map((r) => (
@@ -510,21 +495,9 @@ export default function Arena() {
           </div>
         )}
 
-        <div className="engine-room reveal" style={{ ['--i' as string]: 4 }}>
-          <label className="opt"><span>Judge</span><Switch checked={judgeOn} onChange={setJudgeOn} label="Judge" /></label>
-          {judgeOn && (
-            <>
-              <div className="seg" role="group" aria-label="Judge depth">
-                {[12, 16, 18, 22].map((d) => (
-                  <button key={d} aria-pressed={judgeDepth === d} onClick={() => setJudgeDepth(d)}>{d === 22 ? 'Max' : `d${d}`}</button>
-                ))}
-              </div>
-              <label className="opt"><span>Best move</span><Switch checked={hint} onChange={setHint} label="Show best move" /></label>
-            </>
-          )}
-        </div>
       </aside>
 
+      {gameSheet && <GameSheet prefs={prefs} set={setPrefs} onLoad={load} onClose={() => setGameSheet(false)} />}
       {sheet && <SeatSheet side={sheet} seat={seats[sheet]} onClose={() => setSheet(null)} onChange={(s) => setSeats((x) => ({ ...x, [sheet]: s }))} />}
     </div>
   );

@@ -11,7 +11,7 @@ async function clickSq(page: Page, sq: string, orientation: 'white' | 'black' = 
 }
 const moveButtons = (page: Page) => page.getByTestId('moves').locator('button');
 async function load(page: Page, text: string) {
-  await page.getByRole('tab', { name: 'Load position' }).click();
+  await page.getByLabel('Game settings').click();
   await page.getByLabel('FEN or PGN').fill(text);
   await page.getByRole('button', { name: 'Load', exact: true }).click();
 }
@@ -85,7 +85,6 @@ test('HUD: Stockfish lines, Crystal graph, Monte heatmap', async ({ page }) => {
 
 test('bot vs bot runs, pace and pause work', async ({ page }) => {
   await page.goto('/?white=dice&black=shannon');
-  await expect(page.getByLabel('Pace')).toBeVisible();
   await expect.poll(() => moveButtons(page).count(), { timeout: 30_000 }).toBeGreaterThanOrEqual(4);
   await page.getByTestId('pause').click();
   await expect(page.getByTestId('status')).toHaveText('Paused.', { timeout: 10_000 });
@@ -181,12 +180,28 @@ test('evaluation panel shows White / Draw / Black odds from the engine', async (
 
 test('captures, material lead and check indicator', async ({ page }) => {
   await page.goto('/?white=human&black=human');
-  await page.getByRole('tab', { name: 'Load position' }).click();
-  await page.getByLabel('FEN or PGN').fill('1. e4 d5 2. exd5 Nf6 3. Bb5+');
-  await page.getByRole('button', { name: 'Load', exact: true }).click();
+  await load(page, '1. e4 d5 2. exd5 Nf6 3. Bb5+');
   await expect(page.getByTestId('caps-white').locator('piece')).toHaveCount(1);
   await expect(page.getByTestId('caps-white')).toContainText('+1');
   await expect(page.getByTestId('check-black')).toBeVisible();
   await expect(page.getByTestId('status')).not.toContainText('Check');
   await expect(page.getByTestId('counter')).toContainText('5 / 5');
+});
+
+test('game settings: piece set and judge off persist; judge off hides the evaluation', async ({ page }) => {
+  await page.goto('/?white=human&black=human');
+  await expect(page.getByTestId('judge')).toBeVisible();
+  await page.getByLabel('Game settings').click();
+  await page.getByTestId('set-kiwen-suwi').click();
+  await page.getByRole('switch', { name: 'Judge' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('judge')).toHaveCount(0);
+  await expect(page.getByTestId('evalbar')).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId('judge')).toHaveCount(0);
+  // Chessground re-creates piece nodes on resize, so poll rather than hold a handle.
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('cg-board piece.knight.white')!).backgroundImage))
+    .toContain('/pieces/kiwen-suwi/wN.svg');
+  await page.evaluate(() => localStorage.clear());
 });

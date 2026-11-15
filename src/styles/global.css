@@ -87,8 +87,8 @@ input[type='range']:active::-webkit-slider-thumb { transform: scale(1.25); }
 
 /* ---------- Arena ---------- */
 .arena {
-  --board: min(calc(100dvh - 72px - 112px - 26px - 44px), calc(100vw - 420px - 170px), 860px);
-  position: relative; display: grid; grid-template-columns: auto minmax(340px, 400px); gap: clamp(32px, 5vw, 88px); justify-content: center; align-items: start;
+  --board: min(calc(100dvh - 72px - 112px - 26px - 44px), calc(100vw - clamp(320px, 30vw, 400px) - clamp(28px, 5vw, 88px) - 56px - 2 * clamp(16px, 3vw, 44px)), 860px);
+  position: relative; display: grid; grid-template-columns: auto clamp(320px, 30vw, 400px); gap: clamp(28px, 5vw, 88px); justify-content: center; align-items: start;
   padding: 4px clamp(16px, 3vw, 44px) 44px; transition: --wp 1.6s var(--ease);
 }
 .aura { position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -211,10 +211,9 @@ cg-board piece { transition: filter 0.2s var(--ease); }
 .status-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
 .status { font-size: 13px; color: var(--ink-2); min-height: 20px; }
 .status.err { color: var(--bad); }
-.pace { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; margin-top: 16px; font-size: 12px; }
 
-.tabs { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); padding: 3px; border-radius: 999px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 14px; }
-.tab-ink { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / 3); border-radius: 999px; background: var(--line-2); transform: translateX(calc(var(--t) * 100%)); transition: transform 0.55s var(--out); }
+.tabs { position: relative; display: grid; grid-template-columns: repeat(2, 1fr); padding: 3px; border-radius: 999px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 14px; }
+.tab-ink { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / 2); border-radius: 999px; background: var(--line-2); transform: translateX(calc(var(--t) * 100%)); transition: transform 0.55s var(--out); }
 .tabs button { position: relative; padding: 6px 0; font-size: 12.5px; color: var(--ink-3); transition: color 0.3s var(--ease); }
 .tabs button[aria-selected='true'] { color: var(--ink); }
 
@@ -237,8 +236,6 @@ textarea.paste::placeholder { color: var(--ink-3); }
 .stats dt { font-size: 11px; color: var(--ink-3); }
 .stats dd { margin: 0; font-family: var(--mono); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.engine-room { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
-.opt { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
 
 /* Review */
 .review { display: flex; flex-direction: column; gap: 22px; }
@@ -299,7 +296,7 @@ textarea.paste::placeholder { color: var(--ink-3); }
 .page .aura { --wp: 70; }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 1080px) {
+@media (max-width: 860px) {
   .arena { grid-template-columns: 1fr; --board: min(calc(100vw - 108px), 680px); justify-items: center; padding-left: 28px; }
   .stage { grid-template-columns: 4px 40px var(--board); }
   .panel { padding-top: 0; width: 100%; max-width: 720px; }
@@ -353,3 +350,14 @@ textarea.paste::placeholder { color: var(--ink-3); }
 .seat [data-tip]::after { bottom: auto; top: calc(100% + 8px); transform: translate(-50%, -4px); }
 .seat .who[data-tip]::after { left: 0; transform: translate(0, -4px); }
 .seat .who[data-tip]:hover::after { transform: translate(0, 0); }
+
+/* Game settings sheet */
+.sheet section { display: flex; flex-direction: column; }
+.sheet section .lead { font-size: 28px; }
+.sheet section .about { margin-bottom: 8px; }
+.sets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
+.sets button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px 10px; border-radius: 14px; font-size: 12.5px; color: var(--ink-2); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease), color 0.25s var(--ease); }
+.sets button:hover { color: var(--ink); background: var(--line); }
+.sets button[aria-checked='true'] { color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.sets .pair { display: flex; }
+.sets img { width: 34px; height: 34px; }
