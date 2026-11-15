@@ -1,27 +1,27 @@
 // UCI wrapper around the Stockfish 19 lite WASM worker. Searches are serialized.
 import type { Score } from './chess';
+import { loadAsset, blobUrl, REPO_RAW, REPO_CDN, DEV_LOCAL } from './assets';
 
 /** wdl: win/draw/loss per mille from the side to move (UCI_ShowWDL). */
 export type Line = Score & { multipv: number; depth: number; pv: string[]; nps?: number; nodes?: number; wdl?: [number, number, number] };
 export type Go = { depth?: number; movetime?: number; nodes?: number };
 
-// The engine is fetched by the browser from a public CDN (and then cached), never served by our host.
-// Primary: jsDelivr serving engines/stockfish/ from this repository (the npm package itself is too large for
-// jsDelivr's 150 MB limit). Fallback: unpkg serving the npm package. Keep "stockfish" pinned in package.json.
+// Stockfish 19 lite is downloaded by the browser (repo on GitHub, then jsDelivr, then npm via unpkg) and kept
+// in Cache Storage; our host never serves it. Keep the exact "stockfish" version in package.json in step.
 export const STOCKFISH_VERSION = '19.0.1';
 const FILE = 'stockfish-19-lite-single';
-const SOURCES = [
-  `https://cdn.jsdelivr.net/gh/sr2echa/che2s.com@main/engines/stockfish/${FILE}`,
-  `https://unpkg.com/stockfish@${STOCKFISH_VERSION}/bin/${FILE}`,
-];
+const BASES = [`${REPO_RAW}/stockfish`, `${REPO_CDN}/stockfish`, `https://unpkg.com/stockfish@${STOCKFISH_VERSION}/bin`, DEV_LOCAL && `${DEV_LOCAL}/stockfish`];
 
 /**
- * Browsers refuse cross-origin worker scripts, so a same-origin blob worker importScripts() the CDN build.
- * stockfish.js reads its .wasm location from the worker URL's #fragment.
+ * The engine runs from blob URLs: browsers refuse cross-origin worker scripts, and stockfish.js reads its .wasm
+ * location from the worker URL's #fragment, so both are handed over as local object URLs.
  */
-function cdnWorker(base: string) {
-  const boot = new Blob([`importScripts(${JSON.stringify(`${base}.js`)});`], { type: 'text/javascript' });
-  return new Worker(`${URL.createObjectURL(boot)}#${encodeURIComponent(`${base}.wasm`)}`);
+async function stockfishWorker() {
+  const [js, wasm] = await Promise.all([
+    loadAsset(`${FILE}@${STOCKFISH_VERSION}.js`, BASES.map((b) => b && `${b}/${FILE}.js`)),
+    loadAsset(`${FILE}@${STOCKFISH_VERSION}.wasm`, BASES.map((b) => b && `${b}/${FILE}.wasm`)),
+  ]);
+  return new Worker(`${blobUrl(js, 'text/javascript')}#${encodeURIComponent(blobUrl(wasm, 'application/wasm'))}`);
 }
 
 export class Stockfish {
@@ -29,38 +29,18 @@ export class Stockfish {
   private subs = new Set<(l: string) => void>();
   private chain: Promise<unknown>;
 
-  /** No url: Stockfish 19 lite from the CDNs above. With a url: any same-origin UCI worker script. */
+  /** No url: Stockfish 19 lite (downloaded and cached as above). With a url: any same-origin UCI worker script. */
   constructor(url?: string) {
-    this.chain = url ? this.boot(() => new Worker(url)) : this.bootFrom(SOURCES);
+    this.chain = (async () => {
+      this.attach(url ? new Worker(url) : await stockfishWorker());
+      await this.until('uci', (l) => l === 'uciok');
+      await this.until('isready', (l) => l === 'readyok');
+    })();
   }
 
   private attach(w: Worker) {
     this.w = w;
     w.onmessage = (e) => this.subs.forEach((f) => f(String(e.data)));
-  }
-
-  /** Starts a worker and waits for the UCI handshake; rejects on a worker error or after `ms`. */
-  private boot(make: () => Worker, ms = 20000) {
-    this.attach(make());
-    return new Promise<void>((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error('Engine did not start in time')), ms);
-      this.w.onerror = (e) => (clearTimeout(t), reject(new Error(e.message || 'Engine failed to load')));
-      this.until('uci', (l) => l === 'uciok')
-        .then(() => this.until('isready', (l) => l === 'readyok'))
-        .then(() => (clearTimeout(t), (this.w.onerror = null), resolve()));
-    });
-  }
-
-  private async bootFrom(sources: string[]) {
-    for (const src of sources) {
-      try {
-        return await this.boot(() => cdnWorker(src));
-      } catch {
-        this.w.terminate();
-        this.subs.clear();
-      }
-    }
-    throw new Error('Could not load Stockfish from any CDN');
   }
 
   private until(cmd: string, done: (l: string) => boolean, onLine?: (l: string) => void) {
@@ -117,11 +97,11 @@ export class Stockfish {
   }
 
   stop() {
-    this.w.postMessage('stop');
+    this.w?.postMessage('stop'); // may be called before the worker has been created
   }
 
   terminate() {
-    this.w.terminate();
+    this.w?.terminate();
   }
 }
 

@@ -1,15 +1,19 @@
 import type { BotDef, Hud, ThinkCtx } from '../types';
 import type { InferenceSession } from 'onnxruntime-web';
 import { fromFen, legalMoves, sanOf } from '../chess';
+import { loadAsset, blobUrl, REPO_RAW, REPO_CDN, DEV_LOCAL } from '../assets';
 import vocab from './data/all_moves_maia3.json';
 
 // Maia-3 (CSSLab, University of Toronto): a transformer trained on human games, conditioned on both players' ratings.
-// Weights: AGPL-3.0, fetched on first use and cached in Cache Storage.
-export const MAIA_URL =
-  import.meta.env?.PUBLIC_MAIA_URL ?? 'https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/main/public/maia3/maia3_simplified.onnx';
-/** Dev only: a local copy from `npm run fetch:maia`. Production never serves the model itself. */
-const LOCAL_URL = import.meta.env.DEV ? '/models/maia3_simplified.onnx' : null;
+// Weights are AGPL-3.0. Model and runtime are downloaded by the browser (this repo's models/ on GitHub first,
+// then CDNs) and kept in Cache Storage; our host never serves them.
 const MAIA_BYTES = 45_683_686;
+const MODEL_SOURCES = [
+  import.meta.env?.PUBLIC_MAIA_URL,
+  `${REPO_RAW}/maia/maia3_simplified.onnx`,
+  'https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/main/public/maia3/maia3_simplified.onnx',
+  DEV_LOCAL && `${DEV_LOCAL}/maia/maia3_simplified.onnx`,
+];
 const PIECES = 'PNBRQKpnbrqk';
 const ROLE = { pawn: 'P', knight: 'N', bishop: 'B', rook: 'R', queen: 'Q', king: 'K' } as const;
 const index = vocab as Record<string, number>;
@@ -18,35 +22,19 @@ let session: Promise<{ ort: typeof import('onnxruntime-web'); s: InferenceSessio
 
 async function load(ctx: ThinkCtx) {
   const ort = await import('onnxruntime-web/wasm');
-  // The runtime's JS glue and 14 MB .wasm come from jsDelivr at the exact bundled version (browser-cached).
-  ort.env.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ort.env.versions.web}/dist/`;
+  // The runtime's JS glue and .wasm must match the bundled version exactly; both are handed over as object URLs.
+  const v = ort.env.versions.web;
+  const rt = (file: string) => [`${REPO_RAW}/onnxruntime/${v}/${file}`, `${REPO_CDN}/onnxruntime/${v}/${file}`, `https://cdn.jsdelivr.net/npm/onnxruntime-web@${v}/dist/${file}`, DEV_LOCAL && `${DEV_LOCAL}/onnxruntime/${v}/${file}`];
+  ctx.status('Loading runtime');
+  const [glue, wasm] = await Promise.all([
+    loadAsset(`ort-wasm-simd-threaded@${v}.mjs`, rt('ort-wasm-simd-threaded.mjs')),
+    loadAsset(`ort-wasm-simd-threaded@${v}.wasm`, rt('ort-wasm-simd-threaded.wasm')),
+  ]);
+  ort.env.wasm.wasmPaths = { mjs: blobUrl(glue, 'text/javascript'), wasm: blobUrl(wasm, 'application/wasm') };
   ort.env.wasm.numThreads = 1;
-  const cache = typeof caches !== 'undefined' ? await caches.open('che2s-models') : null;
-  let res = await cache?.match(MAIA_URL);
-  let bytes: ArrayBuffer;
-  if (res) bytes = await res.arrayBuffer();
-  else {
-    res = LOCAL_URL ? await fetch(LOCAL_URL).catch(() => undefined) : undefined;
-    if (!res?.ok || res.headers.get('content-type')?.includes('text/html')) res = await fetch(MAIA_URL);
-    if (!res.ok || !res.body) throw new Error(`Maia download failed (${res.status})`);
-    const reader = res.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let got = 0, shown = -1;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      got += value.length;
-      const pct = Math.floor((got / MAIA_BYTES) * 100);
-      if (pct !== shown) ctx.status(`Downloading network · ${(shown = pct)}%`);
-    }
-    const all = new Uint8Array(got);
-    let o = 0;
-    for (const c of chunks) all.set(c, (o += c.length) - c.length);
-    bytes = all.buffer;
-    await cache?.put(MAIA_URL, new Response(all.slice()));
-  }
+  const model = await loadAsset('maia3_simplified.onnx', MODEL_SOURCES, (pct) => ctx.status(`Downloading network · ${pct}%`), MAIA_BYTES);
   ctx.status('Starting network');
+  const bytes = new Uint8Array(await model.arrayBuffer());
   return { ort: ort as unknown as typeof import('onnxruntime-web'), s: await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] }) };
 }
 

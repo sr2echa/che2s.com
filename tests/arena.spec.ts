@@ -1,17 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
-// Stockfish is loaded from jsDelivr (this repo's engines/stockfish/). Serve those URLs from the local files with
-// CDN-like headers, so the suite exercises the real cross-origin loading path without depending on CDN uptime.
+// Engines and models are downloaded from this repo's models/ folder on GitHub. Serve those URLs from the local
+// files with GitHub-like headers, so the suite exercises the real cross-origin loading path offline.
+const fromModels = (prefix: string) => (route: import('@playwright/test').Route) => {
+  const path = decodeURIComponent(new URL(route.request().url()).pathname).split(prefix)[1];
+  const file = `models/${path}`;
+  if (!existsSync(file)) return route.fulfill({ status: 404, body: 'not found' });
+  route.fulfill({ body: readFileSync(file), contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*' } });
+};
 test.beforeEach(async ({ context }) => {
-  await context.route('https://cdn.jsdelivr.net/gh/sr2echa/che2s.com@main/engines/stockfish/*', (route) => {
-    const file = new URL(route.request().url()).pathname.split('/').pop()!;
-    route.fulfill({
-      body: readFileSync(`engines/stockfish/${file}`),
-      contentType: file.endsWith('.wasm') ? 'application/wasm' : 'text/javascript',
-      headers: { 'access-control-allow-origin': '*', 'cross-origin-resource-policy': 'cross-origin' },
-    });
-  });
+  await context.route('https://raw.githubusercontent.com/sr2echa/che2s.com/main/models/**', fromModels('/main/models/'));
 });
 
 const BOTS = ['stockfish', 'trapsky', 'crystal', 'worstfish', 'shannon', 'monte', 'meridian', 'dice'];
@@ -274,12 +273,13 @@ test('Meridian shows a live territory map', async ({ page }) => {
   await expect(page.getByTestId('legend').locator('figcaption')).toContainText("Black's territory");
 });
 
-test('Stockfish falls back to unpkg when jsDelivr fails', async ({ page, context }) => {
+test('Stockfish falls back through its sources when GitHub and jsDelivr fail', async ({ page, context }) => {
   await context.unrouteAll();
-  await context.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ status: 503, body: 'down' }));
+  await context.route('https://raw.githubusercontent.com/**', (route) => route.fulfill({ status: 503, body: 'blocked' }));
+  await context.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ status: 503, body: 'blocked' }));
   await context.route('https://unpkg.com/stockfish@*/bin/*', (route) => {
     const file = new URL(route.request().url()).pathname.split('/').pop()!;
-    route.fulfill({ body: readFileSync(`engines/stockfish/${file}`), contentType: file.endsWith('.wasm') ? 'application/wasm' : 'text/javascript', headers: { 'access-control-allow-origin': '*' } });
+    route.fulfill({ body: readFileSync(`models/stockfish/${file}`), headers: { 'access-control-allow-origin': '*' } });
   });
   await page.goto('/?white=human&black=human');
   await expect(page.getByTestId('judge-eval')).toHaveText(/^[+-]\d/, { timeout: 30_000 });

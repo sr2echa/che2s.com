@@ -14,7 +14,7 @@
     "preview": "astro preview",
     "test": "playwright test",
     "check": "astro check",
-    "fetch:maia": "mkdir -p public/models && curl -fL -o public/models/maia3_simplified.onnx https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/main/public/maia3/maia3_simplified.onnx"
+    "models": "node scripts/models.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.5",

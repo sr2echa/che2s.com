@@ -69,11 +69,12 @@ npm install
 npm run dev          # http://localhost:4321
 ```
 
-Optional, for development: keep Maia's 44 MB network on disk instead of downloading it on first use.
-Only the dev server uses this copy; production always downloads the model in the browser.
+Heavy files live in `models/` and are committed to the repository. Browsers download them from GitHub,
+not from your host (see [Deploying](#deploying)). After changing the `stockfish` or `onnxruntime-web`
+version, refresh them:
 
 ```bash
-npm run fetch:maia   # saves public/models/maia3_simplified.onnx (git-ignored)
+npm run models       # copies Stockfish and ONNX Runtime from node_modules, fetches Maia-3 if missing
 ```
 
 Other scripts:
@@ -90,7 +91,8 @@ Keyboard: `←` `→` step through moves, `Home` / `End` jump, `F` flips the boa
 ## How it works
 
 ```
-engines/stockfish/  Stockfish 19 lite (JS + WASM), served to browsers by jsDelivr from this repo, never deployed
+models/             stockfish/, onnxruntime/<version>/, maia/: downloaded by browsers from GitHub, never deployed
+scripts/models.mjs  refreshes models/ (npm run models)
 src/
   pages/            index.astro (the arena), bots.astro (the roster)
   components/       Arena (game state + layout), Board (chessground), Overlay (HUD drawing),
@@ -99,7 +101,8 @@ src/
     bots/           one file per bot + index.ts (the registry)
     brain.worker.ts runs bot.think() off the main thread, one Stockfish per bot
     brain.ts        main-thread client for the worker
-    stockfish.ts    UCI wrapper; loads Stockfish from jsDelivr (unpkg as fallback) in a blob worker
+    assets.ts       downloads heavy files from GitHub / CDNs and caches them in the browser
+    stockfish.ts    UCI wrapper; runs the cached Stockfish build in a blob worker
     useJudge.ts     live judge (its own Stockfish instance)
     review.ts       cached analyst, move classification, explanations, full review
     chess.ts        helpers over chessops (moves as standard UCI, SAN, scores, captures)
@@ -226,9 +229,9 @@ readable starting points for a search-based bot.
 any engine compiled to a WASM web worker works the same way:
 
 1. Ship the engine's `.js` and `.wasm`. Either put them in `public/engine/` and pass a same-origin URL, or
-   (to keep them off your host, as Stockfish is) commit them under `engines/` and load them from jsDelivr,
-   following `SOURCES` and `cdnWorker()` in `stockfish.ts`. Browsers refuse cross-origin worker scripts, so
-   CDN builds start in a same-origin blob worker that `importScripts()` the CDN file.
+   (to keep them off your host, as Stockfish is) commit them under `models/<engine>/` and load them with
+   `loadAsset()`, following `stockfishWorker()` in `stockfish.ts`: the bytes are cached in the browser and
+   the worker starts from object URLs, because browsers refuse cross-origin worker scripts.
 2. Create one instance in your bot file, lazily, and reuse it:
 
    ```ts
@@ -250,18 +253,18 @@ any engine compiled to a WASM web worker works the same way:
 single-threaded builds used here do not.
 
 To upgrade Stockfish: bump the exact `stockfish` version in `package.json` and `STOCKFISH_VERSION` in
-`stockfish.ts`, then copy the new lite single-threaded files from `node_modules/stockfish/bin/` into
-`engines/stockfish/` (updating the constant `FILE` if the name changed).
+`stockfish.ts`, run `npm run models`, update the constant `FILE` if the file name changed, and commit `models/`.
 
 ## Adding a neural network
 
 Maia (`src/lib/bots/maia.ts`) is the template:
 
 - `onnxruntime-web` is imported dynamically inside `think()`, so it only loads when the bot plays.
-- The model is downloaded once with streamed progress (`ctx.status`) and cached with the Cache Storage
-  API. In development a copy in `public/models/` is used when present.
-- The ONNX Runtime JS glue and `.wasm` load from jsDelivr at exactly the version that was bundled
-  (`ort.env.versions.web`); the build aliases `onnxruntime-web/wasm` to the variant that embeds no `.wasm`.
+- The model (`models/maia/`) is downloaded once with streamed progress (`ctx.status`) through `loadAsset()`,
+  which caches it with the Cache Storage API.
+- The ONNX Runtime JS glue and `.wasm` are vendored in `models/onnxruntime/<version>/` and loaded at exactly
+  the bundled version (`ort.env.versions.web`) as object URLs; the build aliases `onnxruntime-web/wasm` to
+  the variant that embeds no `.wasm`, so nothing heavy ends up in the deploy.
 - Encode the position into the network's input tensor, mask illegal moves, softmax what is left, and
   return the best (or a sampled) move with the probabilities as the HUD.
 
@@ -284,20 +287,24 @@ settings persistence, and headless checks of the JavaScript bots (legal moves, c
 Vercel, import the repository and keep the detected Astro settings. No adapter, server or special headers
 (COOP/COEP) are needed.
 
-Your host serves only the app (about 0.6 MB per visitor). Everything heavy is downloaded by the browser
-from public CDNs and cached there:
+Your host serves only the app (about 0.6 MB per visitor). Everything heavy lives in `models/` in this
+repository and is downloaded by the browser, once, then kept in Cache Storage:
 
-| Asset | Size | Loaded from | When |
-| --- | --- | --- | --- |
-| Stockfish 19 lite (JS + WASM) | 1.8 MB | jsDelivr (this repo's `engines/stockfish`), unpkg fallback | Every arena visit (the judge uses it) |
-| ONNX Runtime (JS + WASM) | 14 MB | jsDelivr (npm `onnxruntime-web`) | Only when Maia plays |
-| Maia-3 model | 44 MB | GitHub (CSSLab), or `PUBLIC_MAIA_URL` | Only when Maia plays; kept in Cache Storage |
+| Asset | Size | When |
+| --- | --- | --- |
+| `models/stockfish/` Stockfish 19 lite | 1.8 MB | Every arena visit (the judge uses it) |
+| `models/onnxruntime/<version>/` ONNX Runtime | 14.8 MB | Only when Maia plays |
+| `models/maia/` Maia-3 | 44 MB | Only when Maia plays |
 
-- jsDelivr serves `engines/stockfish` from the default branch of this repository, so the repository must
-  be public and pushed before the engine can load.
-- GitHub is not a CDN, so it can be slow or throttled for the Maia model. For heavy traffic, host
-  `maia3_simplified.onnx` somewhere with CORS enabled (Cloudflare R2, a Hugging Face repository) and set
-  `PUBLIC_MAIA_URL` at build time.
+Each file is tried from these sources in order, moving on when one is blocked or down:
+
+1. `raw.githubusercontent.com/sr2echa/che2s.com/main/models/...`
+2. `cdn.jsdelivr.net/gh/sr2echa/che2s.com@main/models/...`
+3. Public package CDNs: unpkg for Stockfish, jsDelivr npm for ONNX Runtime, CSSLab's GitHub for Maia
+4. Development only: `models/` from disk through the dev server
+
+So the repository must be public and `models/` pushed. `PUBLIC_MAIA_URL` at build time puts your own Maia
+host (Cloudflare R2, a Hugging Face repository, any CORS-enabled CDN) first in the list.
 
 ## License
 

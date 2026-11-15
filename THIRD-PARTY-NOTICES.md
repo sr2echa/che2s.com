@@ -7,10 +7,10 @@ following work. Licenses are as published by each project; check upstream for th
 
 | Component | Use | License | Source |
 | --- | --- | --- | --- |
-| Stockfish 19 (stockfish.js, lite single-threaded WASM, vendored in `engines/stockfish/` with its `COPYING`) | Stockfish, WorstFish, Boris Trapsky, the judge, game review | GPL-3.0 | [official-stockfish/Stockfish](https://github.com/official-stockfish/Stockfish), [nmrugg/stockfish.js](https://github.com/nmrugg/stockfish.js) |
-| Maia-3 (`maia3_simplified.onnx`) | Maia bot. Downloaded at runtime, not stored in this repository. | AGPL-3.0 | [CSSLab/maia-platform-frontend](https://github.com/CSSLab/maia-platform-frontend), [CSSLab/maia-chess](https://github.com/CSSLab/maia-chess) |
+| Stockfish 19 (stockfish.js, lite single-threaded WASM, vendored in `models/stockfish/` with its `COPYING`) | Stockfish, WorstFish, Boris Trapsky, the judge, game review | GPL-3.0 | [official-stockfish/Stockfish](https://github.com/official-stockfish/Stockfish), [nmrugg/stockfish.js](https://github.com/nmrugg/stockfish.js) |
+| Maia-3 (`models/maia/maia3_simplified.onnx`, unchanged) | Maia bot | AGPL-3.0 | [CSSLab/maia-platform-frontend](https://github.com/CSSLab/maia-platform-frontend), [CSSLab/maia-chess](https://github.com/CSSLab/maia-chess) |
 | Maia-3 move vocabulary (`src/lib/bots/data/all_moves_maia3.json`) | Maps network outputs to moves | AGPL-3.0 | [CSSLab/maia-platform-frontend](https://github.com/CSSLab/maia-platform-frontend) |
-| ONNX Runtime Web | Runs Maia in the browser | MIT | [microsoft/onnxruntime](https://github.com/microsoft/onnxruntime) |
+| ONNX Runtime Web (runtime vendored in `models/onnxruntime/`) | Runs Maia in the browser | MIT | [microsoft/onnxruntime](https://github.com/microsoft/onnxruntime) |
 
 ## Libraries
 
