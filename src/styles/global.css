@@ -201,7 +201,7 @@ cg-board piece { transition: filter 0.2s var(--ease); }
 .judge { flex: none; padding-bottom: 14px; }
 .rating-slot { flex: none; height: 70px; margin-bottom: 6px; }
 .side .nav { flex: none; }
-.side .actions { flex: none; margin-bottom: 12px; }
+.side .actions { flex: none; margin-bottom: 14px; }
 .deck { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); padding-top: 12px; }
 .deck-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
 .deck .moves { max-height: none; overflow: visible; mask-image: none; }
@@ -347,7 +347,8 @@ textarea.paste::placeholder { color: var(--ink-3); }
 /* Check indicator */
 
 /* Navigation + labelled actions */
-.nav { display: grid; grid-template-columns: auto auto 1fr auto auto; align-items: center; gap: 2px; padding: 2px; border-radius: 999px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+.nav { display: grid; grid-template-columns: auto auto 1fr auto auto; align-items: center; gap: 2px; margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+.nav .icon-btn { width: 34px; height: 34px; }
 .actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .chip-btn { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; border-radius: 999px; font-size: 11.5px; color: var(--ink-2); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); transition: color 0.25s var(--ease), background 0.25s var(--ease), transform 0.15s var(--ease); }
 .chip-btn:hover:not(:disabled) { color: var(--ink); background: var(--line-2); }
@@ -470,3 +471,10 @@ textarea.paste::placeholder { color: var(--ink-3); }
   .medal { width: 34px; height: 34px; }
   .insight p { -webkit-line-clamp: 1; }
 }
+
+/* Action tiles: icon over label, no boxes until hovered */
+.actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; margin-top: 10px; }
+.actions .chip-btn { flex-direction: column; justify-content: center; gap: 5px; height: 52px; padding: 0; border-radius: 12px; background: none; box-shadow: none; font-size: 11px; color: var(--ink-2); }
+.actions .chip-btn svg { width: 19px; height: 19px; }
+.actions .chip-btn:hover:not(:disabled) { background: var(--line); color: var(--ink); }
+.deck { border-top: 0; padding-top: 0; }
