@@ -297,7 +297,8 @@ export default function Arena() {
 
   const movesRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (view < 0 && movesRef.current) movesRef.current.scrollTop = movesRef.current.scrollHeight;
+    const box = movesRef.current?.parentElement; // .deck-body is the scroller
+    if (view < 0 && box) box.scrollTop = box.scrollHeight;
   }, [live, view]);
 
   // ---- render ----------------------------------------------------------------------
@@ -475,29 +476,17 @@ export default function Arena() {
           </div>
         )}
 
-        <div className="toolbar">
-          <div className={`status ${error ? 'err' : ''}`} data-testid="status">
-            {status}
-            {error && <button className="link" onClick={() => (setError(''), setRetry((r) => r + 1))}>Retry</button>}
-          </div>
-          <button className="icon-btn" aria-label="Game settings" data-tip="Judge, pieces, board, pace, load a position" onClick={() => setGameSheet(true)}>
-            <GearSixIcon size={18} />
-          </button>
-          {live > 0 && (
-            <button className="cta small" onClick={() => reset()} data-testid="new-game" data-tip="Start over with the same players">
-              New game
-              <span className="cta-icon"><PlusIcon size={12} weight="bold" /></span>
-            </button>
-          )}
-        </div>
-
         <div className="nav" aria-label="Move navigation">
           <button className="icon-btn" aria-label="First move" data-tip="Start of game (Home)" onClick={() => go(0)} disabled={ply === 0}><SkipBackIcon size={17} weight="fill" /></button>
           <button className="icon-btn" aria-label="Previous move" data-tip="Previous move (←)" onClick={() => go(ply - 1)} disabled={ply === 0}><CaretLeftIcon size={17} weight="bold" /></button>
-          <span className="counter mono" data-testid="counter">{ply === 0 ? 'Start' : `Move ${Math.ceil(ply / 2)}`}<em>{ply} / {live}</em></span>
+          <span className="counter" data-testid="counter">
+            <b className="mono">{ply === 0 ? 'Start' : `Move ${Math.ceil(ply / 2)}`}<em>{ply} / {live}</em></b>
+            <small className={`status ${error ? 'err' : ''}`} data-testid="status" title={status}>{status}</small>
+          </span>
           <button className="icon-btn" aria-label="Next move" data-tip="Next move (→)" onClick={() => go(ply + 1)} disabled={ply === live}><CaretRightIcon size={17} weight="bold" /></button>
           <button className="icon-btn" aria-label="Last move" data-tip="Latest position (End)" onClick={() => go(live)} disabled={ply === live}><SkipForwardIcon size={17} weight="fill" /></button>
         </div>
+        {error && <button className="retry" onClick={() => (setError(''), setRetry((r) => r + 1))}>Retry</button>}
         <div className="actions">
           {hasBot && (
             <button className="chip-btn" aria-label={paused ? 'Resume' : 'Pause'} data-tip={paused ? 'Let the bots continue (Space)' : 'Stop the bots after this move (Space)'} onClick={() => setPaused(!paused)} disabled={!!game.outcome} data-testid="pause">
@@ -560,6 +549,19 @@ export default function Arena() {
           </div>
         </section>
       </aside>
+
+      {/* Game-level actions live in the header's right corner, out of the side column. */}
+      <div className="corner">
+        {live > 0 && (
+          <button className="cta small" onClick={() => reset()} data-testid="new-game" data-tip="Start over with the same players">
+            New game
+            <span className="cta-icon"><PlusIcon size={12} weight="bold" /></span>
+          </button>
+        )}
+        <button className="chip-btn" aria-label="Game settings" data-tip="Judge, pieces, board, pace, load a position" onClick={() => setGameSheet(true)}>
+          <GearSixIcon size={15} weight="bold" />Settings
+        </button>
+      </div>
 
       {gameSheet && <GameSheet prefs={prefs} set={setPrefs} onLoad={load} onClose={() => setGameSheet(false)} />}
       {sheet && <SeatSheet side={sheet} seat={seats[sheet]} onClose={() => setSheet(null)} onChange={(s) => setSeats((x) => ({ ...x, [sheet]: s }))} />}
